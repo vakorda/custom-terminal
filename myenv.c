@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
         printf("Too few arguments\n");
         return -1;
     }
-    int fd_out = open(argv[argc], O_WRONLY | O_APPEND);
+    int fd_out = open("./out.txt", O_WRONLY | O_APPEND);
     int fd_env = open("./env.txt", O_RDONLY);
     char buffer[1];
     int pass_line = 0;
@@ -38,13 +38,15 @@ int main(int argc, char *argv[])
         if (*buffer == '=' && argv[1][position] == '\0') {
           printf("\n\n = and /0 obtained\n\n");
           write(fd_out, argv[1], strlen(argv[1]));
+          write(fd_out, "=", 1);
           printf("current buffer: buffer1=%c\n", *buffer);
-          lseek(fd_env, 1, SEEK_CUR);
+          lseek(fd_env, 0, SEEK_CUR);
+          read(fd_env, buffer, 1);
           printf("gone to next buffer: buffer2=%c\n\n", *buffer);
-
           while(*buffer != '\n') {
             write(fd_out, buffer, 1);
-            lseek(fd_env, 1, SEEK_CUR);
+            lseek(fd_env, 0, SEEK_CUR);
+            read(fd_env, buffer, 1);
             printf("trying to write, current buffer=%c\n", *buffer);
           }
           write(fd_out, "\n", 1);
