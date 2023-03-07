@@ -17,7 +17,11 @@ int main(int argc, char *argv[])
         printf("Too few arguments\n");
         return -1;
     }
-    int fd_out = open("./out.txt", O_WRONLY | O_APPEND);
+    int fd_out = open(argv[2], O_WRONLY | O_APPEND | O_CREAT);
+    if (fd_out < 0){
+      printf("Opening or creating output file caused error\n");
+      return -1;
+    }
     int fd_env = open("./env.txt", O_RDONLY);
     char buffer[1];
     int pass_line = 0;
@@ -25,6 +29,7 @@ int main(int argc, char *argv[])
     int current;
     while ((current = read(fd_env, buffer, 1)) > 0) {
       printf("%c", *buffer);
+      /* detects if next line has been reached */
       if (*buffer == '\n') {
         printf("-----detected next line-----\n");
         pass_line = 0;
@@ -38,20 +43,18 @@ int main(int argc, char *argv[])
         if (*buffer == '=' && argv[1][position] == '\0') {
           printf("\n\n = and \\0 obtained\n\n");
           write(fd_out, argv[1], strlen(argv[1]));
-          write(fd_out, "=", 1);
+          write(fd_out, buffer, 1);
           printf("current buffer: buffer1= '%c'\n", *buffer);
-          lseek(fd_env, 0, SEEK_CUR);
           read(fd_env, buffer, 1);
           printf("gone to next buffer: buffer2= '%c'\n\n", *buffer);
           while(*buffer != '\n') {
             write(fd_out, buffer, 1);
-            lseek(fd_env, 0, SEEK_CUR);
             read(fd_env, buffer, 1);
             printf("trying to write, current buffer= '%c'\n", *buffer);
           }
           write(fd_out, "\n", 1);
-        }
-        pass_line = 1;
+        } else pass_line = 1;
+        position = 0;
       }
     }
     close(fd_out);
