@@ -6,12 +6,12 @@
 //#include <linux/limits.h> // Sometimes needed to be able to use PATH_MAX
 
 int main(int argc, char *argv[]){
-  char **cwd = (char**)malloc(sizeof(char*)*PATH_MAX);
+  char **dir = (char**)malloc(sizeof(char*)*PATH_MAX);
   if (argc < 2)
-      *cwd = getcwd(*cwd,PATH_MAX); //Not assured that the path is smaller than the path_max size
+      *dir = getcwd(*dir,PATH_MAX); //Not assured that the path is smaller than the path_max size
   else
-      *cwd = argv[1];
-  DIR * fd_open = opendir(*cwd);
+      *dir = argv[1];
+  DIR * fd_open = opendir(*dir);
   if (fd_open == NULL) return -1; //In case the given dir is not valid
   struct dirent *current;
   while ((current = readdir(fd_open)) != NULL){
