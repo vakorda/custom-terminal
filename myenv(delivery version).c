@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
         printf("Too few arguments\n");
         return -1;
     }
-    int fd_out = open(argv[2], O_WRONLY | O_APPEND | O_CREAT);
+    int fd_out = open(argv[2], O_APPEND | O_WRONLY | O_CREAT, S_IRWXU);
     if (fd_out < 0){
       printf("Opening or creating output file caused error\n");
       return -1;
