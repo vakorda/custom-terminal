@@ -23,6 +23,9 @@ int main(int argc, char *argv[])
       return -1;
     }
     int fd_env = open("./env.txt", O_RDONLY);
+    if (fd_env < 0){
+      printf("Opening environment file caused error\n");
+      return -1;
     char buffer[1];
     int pass_line = 0;
     int position = 0;
