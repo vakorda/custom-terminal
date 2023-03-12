@@ -14,7 +14,6 @@ int main(int argc, char * argv[]){
   if (fd_open < 0) return -1;
 
   int current;
-  bool is_space = false;
   char buffer[1];
 
   while ((current = read(fd_open,buffer,1) > 0)){
@@ -23,14 +22,14 @@ int main(int argc, char * argv[]){
     if (buffer[0] != ' ' && buffer[0] != '\t' && buffer[0] != '\n'){
       words++;
       // continues reading the word as long as it doesn't end
-      while((current = read(fd_open,buffer,1) > 0) && (buffer[0] != ' ' && buffer[0] != '\t' && buffer[0] != '\n')) {
+      while((current = read(fd_open,buffer,1)) > 0 && (buffer[0] != ' ' && buffer[0] != '\t' && buffer[0] != '\n')) {
         bytes++;
       }
       // counts a byte for the space, \t or \n detected
       if (current > 0) bytes++;
       // passes the spaces or \t after the word
       while(buffer[0] == '\t' || buffer[0] == ' ') {
-        if (current = read(fd_open, buffer,1) > 0) bytes++;
+        if ((current = read(fd_open, buffer,1)) > 0) bytes++;
       }
     }
     // counts line
