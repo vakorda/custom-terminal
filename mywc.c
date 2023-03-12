@@ -6,9 +6,9 @@ int main(int argc, char * argv[]){
     if (argc != 2)
         return -1;
 
-    int lines;
-    int words;
-    int bytes;
+    int lines = 0;
+    int words = 0;
+    int bytes = 0;
     int fd_open = open(argv[1],O_RDONLY);
     if (fd_open < 0)
         return -1;
