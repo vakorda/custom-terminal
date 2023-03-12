@@ -18,6 +18,10 @@ int main(int argc, char * argv[]){
 
   while ((current = read(fd_open,buffer,1) > 0)){
     bytes++;
+    // passes the spaces or \t after the word or at the start of the document
+    while(buffer[0] == '\t' || buffer[0] == ' ') {
+      if ((current = read(fd_open, buffer,1)) > 0) bytes++;
+    }
     // detects the start of a word, if it is a space, \t or \n, we don't count the word
     if (buffer[0] != ' ' && buffer[0] != '\t' && buffer[0] != '\n'){
       words++;
@@ -27,10 +31,6 @@ int main(int argc, char * argv[]){
       }
       // counts a byte for the space, \t or \n detected
       if (current > 0) bytes++;
-      // passes the spaces or \t after the word
-      while(buffer[0] == '\t' || buffer[0] == ' ') {
-        if ((current = read(fd_open, buffer,1)) > 0) bytes++;
-      }
     }
     // counts line
     if (buffer[0] == '\n') {
