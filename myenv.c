@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     int current;
     while ((current = read(fd_env, buffer, 1)) > 0) {
       printf("%c", *buffer);
-      /* detects if next line has been reached */
+      //detects if next line has been reached
       if (*buffer == '\n') {
         pass_line = 0;
         continue;
