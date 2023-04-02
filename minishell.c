@@ -167,20 +167,42 @@ int main(int argc, char* argv[])
 				
 				// WE START HERE
 				int main_pid;
-				int fd[2];
-				pipe(fd);
 				main_pid = fork();
 				if (main_pid == 0){
 					if (command_counter == 1){
 						getCompleteCommand(argvv,command_counter-1);
 						execvp(argv_execvp[0],argv_execvp);
 						}
-					for (int i = 0; i < command_counter;i++){
-						if  (i + 1 != command_counter){
-							initialize_command(fd,argv_execvp,i);
-							
+					if (command_counter == 2){
+						int pid;
+						int fd[2];
+						pipe(fd);
+						pid = fork();
+						switch (pid){
+							case -1:
+								perror("fork");
+								exit(-1);
+							case 0:
+								close(1);
+								dup(fd[1]);
+								close(fd[1]);
+								close(fd[0]);
+								getCompleteCommand(argvv,0);
+								execvp(argv_execvp[0],argv_execvp);
+								perror("execvp");
+								exit(-1);
+							default:
+								close(fd[1]);
+								printf("LLEGUE");
+								wait(NULL);
+								close(0);
+								dup(fd[0]);
+								close(fd[0]);
+								getCompleteCommand(argvv,1);
+								execvp(argv_execvp[0],argv_execvp);
+								perror("execvp");
+								exit(-1);	
 						}
-						
 					}
 				}
 				else{
