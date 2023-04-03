@@ -164,13 +164,28 @@ int main(int argc, char* argv[])
 			}
 			else {
 				print_command(argvv, filev, in_background);
-				
+				getCompleteCommand(argvv,command_counter-1);
+			
 				// WE START HERE
 				int main_pid;
 				main_pid = fork();
 				if (main_pid == 0){
 					if (command_counter == 1){
-						getCompleteCommand(argvv,command_counter-1);
+						if (*filev[0] != '0'){
+							close(0);
+							open(filev[0],O_CREAT | O_TRUNC | O_RDONLY,0666);
+							execvp(argv_execvp[0],argv_execvp);
+						}
+						if (*filev[1] != '0'){
+							close(1);
+							open(filev[1],O_CREAT | O_TRUNC | O_WRONLY,0666);
+							execvp(argv_execvp[0],argv_execvp);
+						}
+						if (*filev[2] != '0'){
+							close(2);
+							open(filev[2],O_CREAT | O_TRUNC | O_WRONLY,0666);
+							execvp(argv_execvp[0],argv_execvp);
+						}
 						execvp(argv_execvp[0],argv_execvp);
 						}
 					if (command_counter == 2){
@@ -193,7 +208,6 @@ int main(int argc, char* argv[])
 								exit(-1);
 							default:
 								close(fd[1]);
-								printf("LLEGUE");
 								wait(NULL);
 								close(0);
 								dup(fd[0]);
@@ -206,7 +220,10 @@ int main(int argc, char* argv[])
 					}
 				}
 				else{
-					wait(NULL);
+					if (in_background == 0){
+						wait(NULL);	
+					}
+					
 				}
 				
 				
