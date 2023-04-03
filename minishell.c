@@ -30,7 +30,6 @@ char filev[3][64];
 //to store the execvp second parameter
 char *argv_execvp[8];
 
-
 void siginthandler(int param)
 {
         printf("****  Exiting MSH **** \n");
@@ -72,13 +71,29 @@ void getCompleteCommand(char*** argvv, int num_command) {
 
 void mycalc(char ***argvv) {
     write(STDERR_FILENO, "\033[1;31mmycalc reached\n\033[0;38m", strlen("\033[1;31mmycalc reached\n\033[0;38m"));
-    if(!atoi(argvv[0][1]) || !atoi(argvv[0][3]) 
+    if(!atoi(argvv[0][1]) || !atoi(argvv[0][3])
             || (strncmp(argvv[0][2], "add", 4) && strncmp(argvv[0][2], "mul", 4) && strncmp(argvv[0][2], "div", 4)))
         exit(-1);
+    int result;
+    if(!strncmp(argvv[0][2], "add", 4)) {
+         result = atoi(argvv[0][1]) + atoi(argvv[0][3]);
+         printf("%s + %s = %u; Acc: %u\n", argvv[0][1], argvv[0][3], result, 0);
+         fflush(stdout);
+    } else
+    if(!strncmp(argvv[0][2], "mul", 4)) {
+         result = atoi(argvv[0][1]) * atoi(argvv[0][3]);
+         printf("%s * %s = %u\n", argvv[0][1], argvv[0][3], result);
+         fflush(stdout);
+    } else
+    if(!strncmp(argvv[0][2], "div", 4)) {
+        int remainder = atoi(argvv[0][1]) % atoi(argvv[0][3]);
+         result = atoi(argvv[0][1]) / atoi(argvv[0][3]);
+         printf("%s / %s = %u; Remainder: %d\n", argvv[0][1], argvv[0][3], result, remainder);
+         fflush(stdout);
+    }
+
 
 }
-
-
 
 
 /**
@@ -143,13 +158,11 @@ int main(int argc, char* argv[])
                                 printf("Error: Maximum number of commands is %d \n", MAX_COMMANDS);
                         }
                         else {
-                                print_command(argvv, filev, in_background);
                                 getCompleteCommand(argvv,command_counter-1);
                                 if(!strncmp(*argvv[0], "mycalc", 7) && command_counter==1){
                                         mycalc(argvv);
-
                                 } else {
-
+                                print_command(argvv, filev, in_background);
                                 // WE START HERE
                                 int main_pid;
                                 int pparent[2], pchild[2];
@@ -171,6 +184,7 @@ int main(int argc, char* argv[])
 
                                     if (command_counter == 1){
                                         execvp(argv_execvp[0],argv_execvp);
+                                        exit(-1);
                                     }
                                     if (command_counter == 2){
                                             int pid;
