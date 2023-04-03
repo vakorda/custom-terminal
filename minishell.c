@@ -217,6 +217,62 @@ int main(int argc, char* argv[])
                                                             exit(-1);
                                             }
                                     }
+                                    if (command_counter == 3) {
+					int pid;
+					int fd[2];
+					pipe(fd);
+					pid = fork();
+					switch (pid){
+						case -1:
+							perror("fork");
+							exit(-1);
+						case 0:
+							int pid2, fd2[2];
+							pipe(fd2);
+							pid2 = fork();
+							switch(pid2){
+								case -1:
+									perror("fork");
+									exit(-1);
+									
+								case 0:
+									close(1);
+									dup(fd2[1]);
+									close(fd2[1]);
+									close(fd2[0]);
+									getCompleteCommand(argvv,0);
+									execvp(argv_execvp[0],argv_execvp);
+									perror("execvp");
+									exit(-1);
+								default:
+									wait(NULL);
+									close(fd2[1]);
+									close(fd[0]);
+									close(0);
+									dup(fd2[0]);
+									close(fd2[0]);
+									close(1);
+									dup(fd[1]);
+									close(fd[1]);
+									getCompleteCommand(argvv,1);
+									execvp(argv_execvp[0],argv_execvp);
+									perror("execvp");
+									exit(-1);
+							}
+							
+						default:
+							wait(NULL);
+							close(fd[1]);
+							close(0);
+							dup(fd[0]);
+							close(fd[0]);
+							getCompleteCommand(argvv,2);
+							
+							execvp(argv_execvp[0],argv_execvp);
+							perror("execvp");
+							exit(-1);
+						}
+					}
                                 }
                                 else{
                                         if (in_background == 0){
