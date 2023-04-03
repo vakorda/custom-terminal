@@ -20,6 +20,9 @@
 
 #define MAX_COMMANDS 8
 
+#define PREAD 0
+#define PWRITE 1
+
 
 // files in case of redirection
 char filev[3][64];
@@ -67,35 +70,12 @@ void getCompleteCommand(char*** argvv, int num_command) {
 
 }
 
-//ls | sort | wc
+void mycalc(char ***argvv) {
+    write(STDERR_FILENO, "\033[1;31mmycalc reached\n\033[0;38m", strlen("\033[1;31mmycalc reached\n\033[0;38m"));
+    if(!atoi(argvv[0][1]) || !atoi(argvv[0][3]) 
+            || (strncmp(argvv[0][2], "add", 4) && strncmp(argvv[0][2], "mul", 4) && strncmp(argvv[0][2], "div", 4)))
+        exit(-1);
 
-/* OUR FUNCTION */
-void initialize_command(int *fd,char**command,int p){
-        int pid;
-        pid = fork();
-        switch (pid){
-                case -1:
-                        perror("fork");
-                        exit(-1);
-                case 0:
-                        close(1);
-                        dup(fd[1]);
-                        close(fd[1]);
-                        close(fd[0]);
-                        getCompleteCommand(&command,p);
-                        execvp(command[0],command);
-                        perror("execvp");
-                        exit(-1);
-                default:
-                        close(fd[1]);
-                        wait(NULL);
-                        close(0);
-                        dup(fd[0]);
-                        close(fd[0]);
-                        execvp(command[1],command);
-                        perror("execvp");
-                        exit(-1);
-        }
 }
 
 
@@ -140,7 +120,7 @@ int main(int argc, char* argv[])
                 signal(SIGINT, siginthandler);
 
                 // Prompt
-                write(STDERR_FILENO, "MSH>>", strlen("MSH>>"));
+                write(STDERR_FILENO, "\033[1;33mMSH>> \033[0;38m", strlen("\033[1;34mMSH>> \033[0;37m"));
 
                 // Get command
                 //********** DO NOT MODIFY THIS PART. IT DISTINGUISH BETWEEN NORMAL/CORRECTION MODE***************
@@ -165,9 +145,14 @@ int main(int argc, char* argv[])
                         else {
                                 print_command(argvv, filev, in_background);
                                 getCompleteCommand(argvv,command_counter-1);
+                                if(!strncmp(*argvv[0], "mycalc", 7) && command_counter==1){
+                                        mycalc(argvv);
+
+                                } else {
 
                                 // WE START HERE
                                 int main_pid;
+                                int pparent[2], pchild[2];
                                 main_pid = fork();
                                 if (main_pid == 0){
                                     if (*filev[0] != '0'){
@@ -216,70 +201,57 @@ int main(int argc, char* argv[])
                                                             perror("execvp");
                                                             exit(-1);
                                             }
-                                    }
-                                    if (command_counter == 3) {
-					int pid;
-					int fd[2];
-					pipe(fd);
-					pid = fork();
-					switch (pid){
-						case -1:
-							perror("fork");
-							exit(-1);
-						case 0:
-							int pid2, fd2[2];
-							pipe(fd2);
-							pid2 = fork();
-							switch(pid2){
-								case -1:
-									perror("fork");
-									exit(-1);
-									
-								case 0:
-									close(1);
-									dup(fd2[1]);
-									close(fd2[1]);
-									close(fd2[0]);
-									getCompleteCommand(argvv,0);
-									execvp(argv_execvp[0],argv_execvp);
-									perror("execvp");
-									exit(-1);
-								default:
-									wait(NULL);
-									close(fd2[1]);
-									close(fd[0]);
-									close(0);
-									dup(fd2[0]);
-									close(fd2[0]);
-									close(1);
-									dup(fd[1]);
-									close(fd[1]);
-									getCompleteCommand(argvv,1);
-									execvp(argv_execvp[0],argv_execvp);
-									perror("execvp");
-									exit(-1);
-							}
-							
-						default:
-							wait(NULL);
-							close(fd[1]);
-							close(0);
-							dup(fd[0]);
-							close(fd[0]);
-							getCompleteCommand(argvv,2);
-							
-							execvp(argv_execvp[0],argv_execvp);
-							perror("execvp");
-							exit(-1);
-						}
-					}
+                                    } else {
+                                        for(int i=command_counter; i>0; i--){
+                                            write(STDERR_FILENO, "\033[1;31mfor executed\n\033[0;38m", strlen("\033[1;31mfor executed\n\033[0;37m"));
+                                            int pid;
+                                            int pnum = command_counter - i;
+                                            if(i != command_counter) { // 1 or all besides command counter
+                                                pparent[0] = pchild[0];
+                                                pparent[1] = pchild[1];
+                                                close(pparent[PREAD]); // b/c we write to the parent
+
+                                                close(1);
+                                                dup(pparent[PWRITE]); //write in pipe to parent
+                                                close(pparent[PWRITE]);
+                                                // if not first elem we create a child
+                                            }
+                                            if(i != 1){
+                                                // reads from child > pipe to child
+                                                pipe(pchild);
+                                                pid = fork();
+                                            } else { // If first elem > not create child
+                                                // salida de la pipe
+                                                pid = getpid();
+                                                write(STDERR_FILENO, "\033[1;33mgot to first elem\n\033[0;38m", strlen("\033[1;33mgot to first elem\n\033[0;37m"));
+                                            }
+
+                                            switch (pid){
+                                                case -1:
+                                                        perror("fork");
+                                                        exit(-1);
+                                                case 0: // child
+                                                        break;
+                                                default:
+                                                    if(i != 1) {
+                                                        close(pchild[PWRITE]); // b/c we read from the child
+                                                        close(0);
+                                                        dup(pchild[PREAD]); //write in pipe to parent
+                                                        close(pchild[PREAD]);
+                                                        wait(NULL);
+                                                    }
+                                                    getCompleteCommand(argvv,i-1);
+                                                    execvp(argv_execvp[0],argv_execvp);
+                                                    perror("error somewhere");
+                                            }
+                                        }
                                 }
-                                else{
+                                } else {
                                         if (in_background == 0){
                                                 wait(NULL);
                                         }
 
-                                }
+                                }}
 
 
                         }
