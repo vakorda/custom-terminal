@@ -20,7 +20,6 @@
 
 #define MAX_COMMANDS 8
 
-
 // files in case of redirection
 char filev[3][64];
 
@@ -67,16 +66,20 @@ void getCompleteCommand(char*** argvv, int num_command) {
 }
 
 void mycalc(char ***argvv) {
-    write(STDERR_FILENO, "\033[1;31mmycalc reached\n\033[0;38m", strlen("\033[1;31mmycalc reached\n\033[0;38m"));
-    if(!atol(argvv[0][1]) || !atol(argvv[0][3])
+    if((!atol(argvv[0][1]) && strncmp(argvv[0][1], "0", 2)) || (!atol(argvv[0][3]) && strncmp(argvv[0][3], "0", 2))
             || (strncmp(argvv[0][2], "add", 4) && strncmp(argvv[0][2], "mul", 4) && strncmp(argvv[0][2], "div", 4))){
-        fprintf(stdout,"[ERROR] The structure of the command is mycalc <operand_1> <add/mul/div> <operand_2>");
+        fprintf(stdout,"[ERROR] The structure of the command is mycalc <operand_1> <add/mul/div> <operand_2>\n");
         exit(-1);
         }
     long int result;
     if(!strncmp(argvv[0][2], "add", 4)) {
+         long int Acc = atol(getenv("Acc"));
          result = atol(argvv[0][1]) + atol(argvv[0][3]);
-         fprintf(stderr,"[OK] %s + %s = %ld; Acc: %d\n", argvv[0][1], argvv[0][3], result, 0);
+         Acc += result;
+         char buf[5];
+         sprintf(buf, "%ld", Acc);
+         setenv("Acc",buf,1);
+         fprintf(stderr,"[OK] %s + %s = %ld; Acc: %ld\n", argvv[0][1], argvv[0][3], result, Acc);
     } else
     if(!strncmp(argvv[0][2], "mul", 4)) {
          result = atol(argvv[0][1]) * atol(argvv[0][3]);
@@ -92,21 +95,13 @@ void mycalc(char ***argvv) {
 }
 
 void my_time(){
-	write(STDERR_FILENO, "\033[1;31mmytime reached\n\033[0;38m", strlen("\033[1;31mmytime reached\n\033[0;38m"));
-	
-	int hours,minutes,seconds,aux_time= mytime/1000;
-	hours = 0;
-	minutes = 0;
-	while  (aux_time > 60){
-		aux_time -= 60;
-		minutes += 1;
-		if (minutes == 60){
-			minutes = 0;
-			hours += 1;
-		}
-	}
-	seconds = aux_time;
-	fprintf(stderr,"%02d:%02d:%02d\n", hours, minutes, seconds);
+        int hours,minutes,seconds;
+        long int aux_time= mytime/1000;
+        fprintf(stderr,"aux_time: %ld\n",aux_time);
+        hours = aux_time / 3600;
+        minutes = (aux_time % 3600) / 60;
+        seconds= ((aux_time % 3600) % 60);
+        fprintf(stderr,"%02d:%02d:%02d\n", hours, minutes, seconds);
 }
 
 
@@ -114,7 +109,7 @@ void my_time(){
  * Main sheell  Loop
  */
 int main(int argc, char* argv[])
-{
+{       setenv("Acc", "0", 0);
         /**** Do not delete this code.****/
         int end = 0;
         int executed_cmd_lines = -1;
@@ -175,7 +170,7 @@ int main(int argc, char* argv[])
                                 getCompleteCommand(argvv,command_counter-1);
                                 if(!strncmp(*argvv[0], "mycalc", 7) && command_counter==1){
                                         mycalc(argvv);
-                                } 
+                                }
                                 else if(!strncmp(*argvv[0], "mytime", 7) && command_counter==1){
                                         my_time();
                                 }
@@ -247,8 +242,8 @@ int main(int argc, char* argv[])
                                                     perror("error somewhere");
                                             }
                                         }
-                               	   }
-                                } 
+                                   }
+                                }
                                 else {
                                         if (in_background == 0){
                                                 wait(NULL);
