@@ -20,9 +20,6 @@
 
 #define MAX_COMMANDS 8
 
-#define PREAD 0
-#define PWRITE 1
-
 
 // files in case of redirection
 char filev[3][64];
@@ -71,25 +68,24 @@ void getCompleteCommand(char*** argvv, int num_command) {
 
 void mycalc(char ***argvv) {
     write(STDERR_FILENO, "\033[1;31mmycalc reached\n\033[0;38m", strlen("\033[1;31mmycalc reached\n\033[0;38m"));
-    if(!atoi(argvv[0][1]) || !atoi(argvv[0][3])
-            || (strncmp(argvv[0][2], "add", 4) && strncmp(argvv[0][2], "mul", 4) && strncmp(argvv[0][2], "div", 4)))
+    if(!atol(argvv[0][1]) || !atol(argvv[0][3])
+            || (strncmp(argvv[0][2], "add", 4) && strncmp(argvv[0][2], "mul", 4) && strncmp(argvv[0][2], "div", 4))){
+        fprintf(stdout,"[ERROR] The structure of the command is mycalc <operand_1> <add/mul/div> <operand_2>");
         exit(-1);
-    int result;
+        }
+    long int result;
     if(!strncmp(argvv[0][2], "add", 4)) {
-         result = atoi(argvv[0][1]) + atoi(argvv[0][3]);
-         printf("%s + %s = %u; Acc: %u\n", argvv[0][1], argvv[0][3], result, 0);
-         fflush(stdout);
+         result = atol(argvv[0][1]) + atol(argvv[0][3]);
+         fprintf(stderr,"[OK] %s + %s = %ld; Acc: %d\n", argvv[0][1], argvv[0][3], result, 0);
     } else
     if(!strncmp(argvv[0][2], "mul", 4)) {
-         result = atoi(argvv[0][1]) * atoi(argvv[0][3]);
-         printf("%s * %s = %u\n", argvv[0][1], argvv[0][3], result);
-         fflush(stdout);
+         result = atol(argvv[0][1]) * atol(argvv[0][3]);
+         fprintf(stderr,"[OK] %s * %s = %ld\n", argvv[0][1], argvv[0][3], result);
     } else
     if(!strncmp(argvv[0][2], "div", 4)) {
-        int remainder = atoi(argvv[0][1]) % atoi(argvv[0][3]);
-         result = atoi(argvv[0][1]) / atoi(argvv[0][3]);
-         printf("%s / %s = %u; Remainder: %d\n", argvv[0][1], argvv[0][3], result, remainder);
-         fflush(stdout);
+         int remainder = atol(argvv[0][1]) % atol(argvv[0][3]);
+         result = atol(argvv[0][1]) / atol(argvv[0][3]);
+         fprintf(stderr,"[OK] %s / %s = %ld; Remainder: %d\n", argvv[0][1], argvv[0][3], result, remainder);
     }
 
 
@@ -169,7 +165,6 @@ int main(int argc, char* argv[])
                                 main_pid = fork();
                                 if (main_pid == 0){
                                     if (*filev[0] != '0'){
-                                            perror("AA");
                                             close(0);
                                             open(filev[0], O_RDONLY, 0666);
                                     }
@@ -186,36 +181,7 @@ int main(int argc, char* argv[])
                                         execvp(argv_execvp[0],argv_execvp);
                                         exit(-1);
                                     }
-                                    if (command_counter == 2){
-                                            int pid;
-                                            int fd[2];
-                                            pipe(fd);
-                                            pid = fork();
-                                            switch (pid){
-                                                    case -1:
-                                                            perror("fork");
-                                                            exit(-1);
-                                                    case 0:
-                                                            close(1);
-                                                            dup(fd[1]);
-                                                            close(fd[1]);
-                                                            close(fd[0]);
-                                                            getCompleteCommand(argvv,0);
-                                                            execvp(argv_execvp[0],argv_execvp);
-                                                            perror("execvp");
-                                                            exit(-1);
-                                                    default:
-                                                            close(fd[1]);
-                                                            close(0);
-                                                            dup(fd[0]);
-                                                            close(fd[0]);
-                                                            getCompleteCommand(argvv,1);
-                                                            waitpid(getppid(), NULL, WEXITED);
-                                                            execvp(argv_execvp[0],argv_execvp);
-                                                            perror("execvp");
-                                                            exit(-1);
-                                            }
-                                    } else {
+                                    else {
                                         for(int i=command_counter; i>0; i--){
                                             write(STDERR_FILENO, "\033[1;31mfor executed\n\033[0;38m", strlen("\033[1;31mfor executed\n\033[0;37m"));
                                             int pid;
@@ -223,11 +189,11 @@ int main(int argc, char* argv[])
                                             if(i != command_counter) { // 1 or all besides command counter
                                                 pparent[0] = pchild[0];
                                                 pparent[1] = pchild[1];
-                                                close(pparent[PREAD]); // b/c we write to the parent
+                                                close(pparent[0]); // b/c we write to the parent
 
                                                 close(1);
-                                                dup(pparent[PWRITE]); //write in pipe to parent
-                                                close(pparent[PWRITE]);
+                                                dup(pparent[1]); //write in pipe to parent
+                                                close(pparent[1]);
                                                 // if not first elem we create a child
                                             }
                                             if(i != 1){
@@ -248,10 +214,10 @@ int main(int argc, char* argv[])
                                                         break;
                                                 default:
                                                     if(i != 1) {
-                                                        close(pchild[PWRITE]); // b/c we read from the child
+                                                        close(pchild[1]); // b/c we read from the child
                                                         close(0);
-                                                        dup(pchild[PREAD]); //write in pipe to parent
-                                                        close(pchild[PREAD]);
+                                                        dup(pchild[0]); //write in pipe to parent
+                                                        close(pchild[0]);
                                                         wait(NULL);
                                                     }
                                                     getCompleteCommand(argvv,i-1);
@@ -259,13 +225,15 @@ int main(int argc, char* argv[])
                                                     perror("error somewhere");
                                             }
                                         }
-                                }
-                                } else {
+                               	   }
+                                } 
+                                else {
                                         if (in_background == 0){
                                                 wait(NULL);
                                         }
 
-                                }}
+                                }
+                            }
 
 
                         }
