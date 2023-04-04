@@ -240,6 +240,7 @@ int main(int argc, char* argv[])
                                                     getCompleteCommand(argvv,i-1);
                                                     execvp(argv_execvp[0],argv_execvp);
                                                     perror("error somewhere");
+                                                    exit(-1);
                                             }
                                         }
                                    }
