@@ -94,7 +94,7 @@ void mycalc(char ***argvv) {
 void my_time(){
 	write(STDERR_FILENO, "\033[1;31mmytime reached\n\033[0;38m", strlen("\033[1;31mmytime reached\n\033[0;38m"));
 	
-	int hours,minutes,seconds,aux_time= mytime;
+	int hours,minutes,seconds,aux_time= mytime/1000;
 	hours = 0;
 	minutes = 0;
 	while  (aux_time > 60){
@@ -107,10 +107,6 @@ void my_time(){
 	}
 	seconds = aux_time;
 	fprintf(stderr,"%02d:%02d:%02d\n", hours, minutes, seconds);
-	
-	struct tm* time;
-	time = localtime(&mytime);
-	fprintf(stderr,"%02d:%02d:%02d\n", time->tm_hour, time->tm_min, time->tm_sec);
 }
 
 
