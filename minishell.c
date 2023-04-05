@@ -78,7 +78,7 @@ void mycalc(char ***argvv) {
          char *buf = (char *)malloc(sizeof(long int));
          sprintf(buf, "%ld", Acc);
          setenv("Acc",buf,1);
-         fprintf(stderr,"[OK] %s + %s = %ld; Acc: %ld\n", argvv[0][1], argvv[0][3], result, Acc);
+         fprintf(stderr,"[OK] %s + %s = %ld; Acc %ld\n", argvv[0][1], argvv[0][3], result, Acc);
     } else
     if(!strncmp(argvv[0][2], "mul", 4)) {
          result = atol(argvv[0][1]) * atol(argvv[0][3]);
@@ -87,7 +87,7 @@ void mycalc(char ***argvv) {
     if(!strncmp(argvv[0][2], "div", 4)) {
          int remainder = atol(argvv[0][1]) % atol(argvv[0][3]);
          result = atol(argvv[0][1]) / atol(argvv[0][3]);
-         fprintf(stderr,"[OK] %s / %s = %ld; Remainder: %d\n", argvv[0][1], argvv[0][3], result, remainder);
+         fprintf(stderr,"[OK] %s / %s = %ld; Remainder %d\n", argvv[0][1], argvv[0][3], result, remainder);
     }
 
 
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
                 signal(SIGINT, siginthandler);
 
                 // Prompt
-                write(STDERR_FILENO, "\033[1;33mMSH>> \033[0;38m", strlen("\033[1;34mMSH>> \033[0;37m"));
+                write(STDERR_FILENO, "MSH>>", strlen("MSH>>"));
 
                 // Get command
                 //********** DO NOT MODIFY THIS PART. IT DISTINGUISH BETWEEN NORMAL/CORRECTION MODE***************
@@ -171,25 +171,25 @@ int main(int argc, char* argv[])
                                     my_time();
                                 }
                                 else {
-                                print_command(argvv, filev, in_background);
+                                //print_command(argvv, filev, in_background);
 
                                 // WE START THE PIPES HERE
                                 int main_pid;
                                 int status;
                                 int pparent[2], pchild[2]; // pparent: pipe with parent, pchild: pipe with child
                                 main_pid = fork();
-                                
+
                                 if (main_pid == -1) {
                                     perror("Error doing fork");
                                     exit(-1);
-                                
+
                                 } else if (main_pid != 0) { // main parent
                                     if (in_background == 0){
                                             wait(&status);
                                     } else {
                                         fprintf(stdout,"pid of child: %d\n", main_pid);
                                     }
-                                
+
                                 } else { // child
                                     if (*filev[0] != '0'){
                                         close(0);
