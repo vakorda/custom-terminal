@@ -69,7 +69,6 @@ void mycalc(char ***argvv) {
     if((!atol(argvv[0][1]) && strncmp(argvv[0][1], "0", 2)) || (!atol(argvv[0][3]) && strncmp(argvv[0][3], "0", 2))
             || (strncmp(argvv[0][2], "add", 4) && strncmp(argvv[0][2], "mul", 4) && strncmp(argvv[0][2], "div", 4))){
         fprintf(stdout,"[ERROR] The structure of the command is mycalc <operand_1> <add/mul/div> <operand_2>\n");
-        exit(-1);
         }
     long int result;
     if(!strncmp(argvv[0][2], "add", 4)) {
