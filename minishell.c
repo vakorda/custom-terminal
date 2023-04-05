@@ -76,7 +76,7 @@ void mycalc(char ***argvv) {
          long int Acc = atol(getenv("Acc"));
          result = atol(argvv[0][1]) + atol(argvv[0][3]);
          Acc += result;
-         char buf[5];
+         char *buf = (char *)malloc(sizeof(long int));
          sprintf(buf, "%ld", Acc);
          setenv("Acc",buf,1);
          fprintf(stderr,"[OK] %s + %s = %ld; Acc: %ld\n", argvv[0][1], argvv[0][3], result, Acc);
@@ -138,7 +138,6 @@ int main(int argc, char* argv[])
 
         while (1)
         {
-                int status = 0;
                 int command_counter = 0;
                 int in_background = 0;
                 signal(SIGINT, siginthandler);
@@ -165,95 +164,94 @@ int main(int argc, char* argv[])
                 if (command_counter > 0) {
                         if (command_counter > MAX_COMMANDS){
                                 printf("Error: Maximum number of commands is %d \n", MAX_COMMANDS);
-                        }
-                        else {
-                                getCompleteCommand(argvv,command_counter-1);
+                        } else {
                                 if(!strncmp(*argvv[0], "mycalc", 7) && command_counter==1){
-                                        mycalc(argvv);
+                                    mycalc(argvv);
                                 }
                                 else if(!strncmp(*argvv[0], "mytime", 7) && command_counter==1){
-                                        my_time();
+                                    my_time();
                                 }
                                 else {
                                 print_command(argvv, filev, in_background);
-                                // WE START HERE
+
+                                // WE START THE PIPES HERE
                                 int main_pid;
-                                int pparent[2], pchild[2];
+                                int status;
+                                int pparent[2], pchild[2]; // pparent: pipe with parent, pchild: pipe with child
                                 main_pid = fork();
+                                if (main_pid == -1) {
+                                    perror("Error doing fork");
+                                    exit(-1);
+                                }
                                 if (main_pid == 0){
                                     if (*filev[0] != '0'){
-                                            close(0);
-                                            open(filev[0], O_RDONLY, 0666);
+                                        close(0);
+                                        if(open(filev[0], O_RDONLY, 0666) < 0){
+                                            perror("Error opening the input file");
+                                        };
                                     }
                                     if (*filev[1] != '0'){
-                                            close(1);
-                                            open(filev[1],O_CREAT | O_TRUNC | O_WRONLY,0666);
+                                        close(1);
+                                        if(open(filev[1],O_CREAT | O_TRUNC | O_WRONLY,0666) < 0){
+                                            perror("Error opening the output file");
+                                        }
                                     }
                                     if (*filev[2] != '0'){
-                                            close(2);
-                                            open(filev[2],O_CREAT | O_TRUNC | O_WRONLY,0666);
+                                        close(2);
+                                        if(open(filev[2],O_CREAT | O_TRUNC | O_WRONLY,0666) < 0){
+                                            perror("Error opening the error file");
+                                        };
                                     }
 
-                                    if (command_counter == 1){
-                                        execvp(argv_execvp[0],argv_execvp);
-                                        exit(-1);
-                                    }
-                                    else {
-                                        for(int i=command_counter; i>0; i--){
-                                            write(STDERR_FILENO, "\033[1;31mfor executed\n\033[0;38m", strlen("\033[1;31mfor executed\n\033[0;37m"));
-                                            int pid;
-                                            int pnum = command_counter - i;
-                                            if(i != command_counter) { // 1 or all besides command counter
-                                                pparent[0] = pchild[0];
-                                                pparent[1] = pchild[1];
-                                                close(pparent[0]); // b/c we write to the parent
+                                    for(int i=command_counter; i > 0; i--){
+                                        int pid;
+                                        if(i != command_counter) { // all besides last (... | wv) write to the pipe
+                                            pparent[0] = pchild[0];
+                                            pparent[1] = pchild[1];
+                                            close(pparent[0]);
 
-                                                close(1);
-                                                dup(pparent[1]); //write in pipe to parent
-                                                close(pparent[1]);
-                                                // if not first elem we create a child
-                                            }
-                                            if(i != 1){
-                                                // reads from child > pipe to child
-                                                pipe(pchild);
-                                                pid = fork();
-                                            } else { // If first elem > not create child
-                                                // salida de la pipe
-                                                pid = getpid();
-                                                write(STDERR_FILENO, "\033[1;33mgot to first elem\n\033[0;38m", strlen("\033[1;33mgot to first elem\n\033[0;37m"));
-                                            }
+                                            close(1); // it will write to the parent
+                                            dup(pparent[1]);
+                                            close(pparent[1]);
+                                        }
+                                        if(i != 1){ // create pipes until it gets to the first elem (wv | ...)
+                                            // creates a pipe with its child
+                                            pipe(pchild);
+                                            pid = fork();
+                                        } else { // if first elem -> default in the switch statement
+                                            pid = getpid();
+                                        }
 
-                                            switch (pid){
-                                                case -1:
-                                                        perror("fork");
-                                                        exit(-1);
-                                                case 0: // child
-                                                        break;
-                                                default:
-                                                    if(i != 1) {
-                                                        close(pchild[1]); // b/c we read from the child
-                                                        close(0);
-                                                        dup(pchild[0]); //write in pipe to parent
-                                                        close(pchild[0]);
-                                                        wait(NULL);
-                                                    }
-                                                    getCompleteCommand(argvv,i-1);
-                                                    execvp(argv_execvp[0],argv_execvp);
-                                                    perror("error somewhere");
-                                                    exit(-1);
-                                            }
+                                        switch (pid){
+                                            case -1:
+                                                perror("Error doing fork");
+                                                exit(-1);
+                                            case 0: // child
+                                                // go to loop
+                                                break;
+                                            default:
+                                                // after creating child
+                                                if(i != 1) { // first elem does not have a child -> reads from input file
+                                                    close(pchild[1]);
+                                                    close(0);
+                                                    dup(pchild[0]); // it will read from the child
+                                                    close(pchild[0]);
+                                                    wait(&status);
+                                                }
+                                                getCompleteCommand(argvv,i-1);
+                                                execvp(argv_execvp[0],argv_execvp);
+                                                perror("Error executing command");
+                                                exit(-1);
                                         }
                                    }
-                                }
-                                else {
-                                        if (in_background == 0){
-                                                wait(NULL);
-                                        }
-
+                                } else { // main parent
+                                    if (in_background == 0){
+                                            wait(&status);
+                                    } else {
+                                        fprintf(stdout,"pid of child: %d\n", main_pid);
+                                    }
                                 }
                             }
-
-
                         }
                 }
         }
