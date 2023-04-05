@@ -178,11 +178,19 @@ int main(int argc, char* argv[])
                                 int status;
                                 int pparent[2], pchild[2]; // pparent: pipe with parent, pchild: pipe with child
                                 main_pid = fork();
+                                
                                 if (main_pid == -1) {
                                     perror("Error doing fork");
                                     exit(-1);
-                                }
-                                if (main_pid == 0){
+                                
+                                } else if (main_pid != 0) { // main parent
+                                    if (in_background == 0){
+                                            wait(&status);
+                                    } else {
+                                        fprintf(stdout,"pid of child: %d\n", main_pid);
+                                    }
+                                
+                                } else { // child
                                     if (*filev[0] != '0'){
                                         close(0);
                                         if(open(filev[0], O_RDONLY, 0666) < 0){
@@ -243,12 +251,6 @@ int main(int argc, char* argv[])
                                                 exit(-1);
                                         }
                                    }
-                                } else { // main parent
-                                    if (in_background == 0){
-                                            wait(&status);
-                                    } else {
-                                        fprintf(stdout,"pid of child: %d\n", main_pid);
-                                    }
                                 }
                             }
                         }
