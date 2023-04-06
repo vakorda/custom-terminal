@@ -66,41 +66,43 @@ void getCompleteCommand(char*** argvv, int num_command) {
 }
 
 void mycalc(char ***argvv) {
-    if((!atol(argvv[0][1]) && strncmp(argvv[0][1], "0", 2)) || (!atol(argvv[0][3]) && strncmp(argvv[0][3], "0", 2))
-            || (strncmp(argvv[0][2], "add", 4) && strncmp(argvv[0][2], "mul", 4) && strncmp(argvv[0][2], "div", 4))){
+    if(argvv[0][1]==NULL || argvv[0][3]==NULL || argvv[0][4]!=NULL || ((!atol(argvv[0][1]) && strncmp(argvv[0][1], "0", 2)) || (!atol(argvv[0][3]) && strncmp(argvv[0][3], "0", 2))
+            || (strncmp(argvv[0][2], "add", 4) && strncmp(argvv[0][2], "mul", 4) && strncmp(argvv[0][2], "div", 4)))){
         fprintf(stdout,"[ERROR] The structure of the command is mycalc <operand_1> <add/mul/div> <operand_2>\n");
+    } else {
+        long int result;
+        if(!strncmp(argvv[0][2], "add", 4)) {
+             long int Acc = atol(getenv("Acc"));
+             result = atol(argvv[0][1]) + atol(argvv[0][3]);
+             Acc += result;
+             char *buf = (char *)malloc(sizeof(long int));
+             sprintf(buf, "%ld", Acc);
+             setenv("Acc",buf,1);
+             fprintf(stderr,"[OK] %s + %s = %ld; Acc %ld\n", argvv[0][1], argvv[0][3], result, Acc);
+        } else
+        if(!strncmp(argvv[0][2], "mul", 4)) {
+             result = atol(argvv[0][1]) * atol(argvv[0][3]);
+             fprintf(stderr,"[OK] %s * %s = %ld\n", argvv[0][1], argvv[0][3], result);
+        } else
+        if(!strncmp(argvv[0][2], "div", 4)) {
+             int remainder = atol(argvv[0][1]) % atol(argvv[0][3]);
+             result = atol(argvv[0][1]) / atol(argvv[0][3]);
+             fprintf(stderr,"[OK] %s / %s = %ld; Remainder %d\n", argvv[0][1], argvv[0][3], result, remainder);
         }
-    long int result;
-    if(!strncmp(argvv[0][2], "add", 4)) {
-         long int Acc = atol(getenv("Acc"));
-         result = atol(argvv[0][1]) + atol(argvv[0][3]);
-         Acc += result;
-         char *buf = (char *)malloc(sizeof(long int));
-         sprintf(buf, "%ld", Acc);
-         setenv("Acc",buf,1);
-         fprintf(stderr,"[OK] %s + %s = %ld; Acc %ld\n", argvv[0][1], argvv[0][3], result, Acc);
-    } else
-    if(!strncmp(argvv[0][2], "mul", 4)) {
-         result = atol(argvv[0][1]) * atol(argvv[0][3]);
-         fprintf(stderr,"[OK] %s * %s = %ld\n", argvv[0][1], argvv[0][3], result);
-    } else
-    if(!strncmp(argvv[0][2], "div", 4)) {
-         int remainder = atol(argvv[0][1]) % atol(argvv[0][3]);
-         result = atol(argvv[0][1]) / atol(argvv[0][3]);
-         fprintf(stderr,"[OK] %s / %s = %ld; Remainder %d\n", argvv[0][1], argvv[0][3], result, remainder);
     }
-
-
 }
 
-void my_time(){
-        int hours,minutes,seconds;
-        long int aux_time= mytime/1000;
-        fprintf(stderr,"aux_time: %ld\n",aux_time);
-        hours = aux_time / 3600;
-        minutes = (aux_time % 3600) / 60;
-        seconds= ((aux_time % 3600) % 60);
-        fprintf(stderr,"%02d:%02d:%02d\n", hours, minutes, seconds);
+void my_time(char ***argvv){
+        if(argvv[0][1]!=NULL){
+            fprintf(stderr,"[ERROR] The structure of the command is incorrect\n");
+        } else {
+            int hours,minutes,seconds;
+            long int aux_time= mytime/1000;
+            hours = aux_time / 3600;
+            minutes = (aux_time % 3600) / 60;
+            seconds= ((aux_time % 3600) % 60);
+            fprintf(stderr,"%02d:%02d:%02d\n", hours, minutes, seconds);
+        }
 }
 
 
@@ -168,11 +170,9 @@ int main(int argc, char* argv[])
                                     mycalc(argvv);
                                 }
                                 else if(!strncmp(*argvv[0], "mytime", 7) && command_counter==1){
-                                    my_time();
+                                    my_time(argvv);
                                 }
                                 else {
-                                //print_command(argvv, filev, in_background);
-
                                 // WE START THE PIPES HERE
                                 int main_pid;
                                 int status;
