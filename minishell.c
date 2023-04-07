@@ -66,28 +66,37 @@ void getCompleteCommand(char*** argvv, int num_command) {
 }
 
 void mycalc(char ***argvv) {
+    // Checking the provided function has the expected structure (null values, integers, add/mul/div, no extra parameters...)
     if(argvv[0][1]==NULL || argvv[0][3]==NULL || argvv[0][4]!=NULL || ((!atol(argvv[0][1]) && strncmp(argvv[0][1], "0", 2)) || (!atol(argvv[0][3]) && strncmp(argvv[0][3], "0", 2))
             || (strncmp(argvv[0][2], "add", 4) && strncmp(argvv[0][2], "mul", 4) && strncmp(argvv[0][2], "div", 4)))){
         fprintf(stdout,"[ERROR] The structure of the command is mycalc <operand_1> <add/mul/div> <operand_2>\n");
     } else {
+        // Initialize result
         long int result;
+        // In case of add option
         if(!strncmp(argvv[0][2], "add", 4)) {
+             // We need to make use of env variable Acc
              long int Acc = atol(getenv("Acc"));
              result = atol(argvv[0][1]) + atol(argvv[0][3]);
              Acc += result;
              char *buf = (char *)malloc(sizeof(long int));
+             // And load the new value for the env variable
              sprintf(buf, "%ld", Acc);
              setenv("Acc",buf,1);
              fprintf(stderr,"[OK] %s + %s = %ld; Acc %ld\n", argvv[0][1], argvv[0][3], result, Acc);
-        } else
-        if(!strncmp(argvv[0][2], "mul", 4)) {
+        } 
+        // In case of mul option
+        else if(!strncmp(argvv[0][2], "mul", 4)) {
              result = atol(argvv[0][1]) * atol(argvv[0][3]);
              fprintf(stderr,"[OK] %s * %s = %ld\n", argvv[0][1], argvv[0][3], result);
-        } else
-        if(!strncmp(argvv[0][2], "div", 4)) {
+        } 
+        // In case of div option
+        else if(!strncmp(argvv[0][2], "div", 4)) {
+             // If the division is by 0 we raise an error
              if(!strncmp(argvv[0][3], "0", 2)) {
                  fprintf(stdout,"[ERROR] Cannot divide by zero\n");
              } else {
+                 // Remainder is needed in div
                  int remainder = atol(argvv[0][1]) % atol(argvv[0][3]);
                  result = atol(argvv[0][1]) / atol(argvv[0][3]);
                  fprintf(stderr,"[OK] %s / %s = %ld; Remainder %d\n", argvv[0][1], argvv[0][3], result, remainder);
@@ -97,6 +106,7 @@ void mycalc(char ***argvv) {
 }
 
 void my_time(char ***argvv){
+        // checking no extra parameters are passed on the function
         if(argvv[0][1]!=NULL){
             fprintf(stderr,"[ERROR] The structure of the command is incorrect\n");
         } else {
