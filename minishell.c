@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
                                 }
                                 else {
                                 // WE START THE PIPES HERE
-                                int main_pid;
+                                int main_pid; // main pid to keep the msh running
                                 int status;
                                 int pparent[2], pchild[2]; // pparent: pipe with parent, pchild: pipe with child
                                 main_pid = fork();
@@ -205,6 +205,7 @@ int main(int argc, char* argv[])
                                     }
 
                                 } else { // child
+                                    // In case of having input/output/error redirections
                                     if (*filev[0] != '0'){
                                         close(0);
                                         if(open(filev[0], O_RDONLY, 0666) < 0){
@@ -223,7 +224,7 @@ int main(int argc, char* argv[])
                                             perror("Error opening the error file");
                                         };
                                     }
-
+                                    // Loop for executing the command or command sequence
                                     for(int i=command_counter; i > 0; i--){
                                         int pid;
                                         if(i != command_counter) { // all besides last (... | wv) write to the pipe
