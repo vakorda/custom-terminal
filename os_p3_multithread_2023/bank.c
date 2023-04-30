@@ -21,8 +21,10 @@
  * @return
  */
  //CONSTANTS
+ 
  char ** ATMs;
  char * workers;
+ /*
  int curr_atm = 0;
  int curr_worker = 0;
  
@@ -94,23 +96,38 @@ char * parser(const char * file){
 	}
 	    
 }
+*/
 
 
 int main (int argc, const char * argv[] ) {
-	printf("%d\n",argc);
-	printf("%s\n",argv[1]);
-	char file[] = "example.txt";
-	strcpy(file,argv[1]); 
 	int prods = atoi(argv[2]);
 	int cons = atoi(argv[3]);
 	int max_accounts = atoi(argv[4]);	
 	int buff_size = atoi(argv[5]);
-
 	ATMs = (char **)malloc(sizeof(char*)*prods);
 	workers = (char *)malloc(sizeof(char)*cons);
-	char * operatins = parser((const char *)file);
-	for (int i = 0;i<prods;i++){
-		printf("%s\n",ATMs[i]);
-	}
+	char ** list_clients_ops;
+	int current,i;
+	char n_commands[3];
+	FILE * fd_open= fopen(argv[1],"r");
+	if (fd_open == NULL)exit(-1);
+	fgets(n_commands,3,fd_open);
+      	int n_command = atoi(n_commands);
+      	if (!n_command && strncmp(n_commands,"0",2)){
+      		perror("first lie is not a number!!");
+      		exit(-1);
+      	}
+      	else if (n_command > 200){
+      		perror("Number of operations greater than 200");
+      		exit(-1);
+      	}
+      	char buff[30];
+      	for (int i = 0;i<=n_command;i++){
+      		if (fgets(buff,30,fd_open) != NULL){
+      		printf("%s",buff);
+      		}
+      	}
+      	
+	fclose(fd_open);
 	return 0;
 }
