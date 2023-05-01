@@ -27,9 +27,8 @@ int client_numop = 0;
 int bank_numop = 0;
 long long int global_balance = 0;
 char ** list_clients_ops;
-long int * account_balance;
-
-
+long int ** account_balance;
+int n_commands;
 sem_t mu;
 sem_t sem_producer;
 sem_t sem_consumer;
@@ -107,12 +106,12 @@ char * parser(const char * file){
 }
 */
 
-void * init_list_clients(const char *file, char **list_client_ops);
+int init_list_clients(const char *file, char **list_client_ops);
 int check_arguments(int argc, const char *argv[]);
 void producer(queue *q);
 void consumer(queue *q);
 
-void * init_list_clients(const char * file, char **list_client_ops) {
+int init_list_clients(const char * file, char **list_client_ops) {
     char n_commands[3];
     FILE * fd_open= fopen(file,"r");
     if (fd_open == NULL) exit(-1);
@@ -140,6 +139,7 @@ void * init_list_clients(const char * file, char **list_client_ops) {
             printf("%s\n", list_clients_ops[i]);
     }*/
     fclose(fd_open);
+    return n_command;
 }
 
 int check_arguments(int argc, const char *argv[]) {
@@ -172,13 +172,13 @@ int check_arguments(int argc, const char *argv[]) {
 
 void producer(queue *q) {
 
-   for(;;){
+   while(client_numop < n_commands){
         sem_wait(&sem_producer);
         sem_wait(&mu);
         element o;
         o.operation = list_clients_ops[client_numop++];
         queue_put(q, &o);
-        print_elems(q);
+        // print_elems(q);
 
         sem_post(&mu);
         sem_post(&sem_consumer);
@@ -186,10 +186,79 @@ void producer(queue *q) {
     pthread_exit(NULL);
 }
 
+void create_account(int num_account) {
+    if(account_balance[num_account] != NULL) {
+        perror("Account already exists!");
+        exit(-1);
+    }
+    account_balance[num_account] = malloc(sizeof(long int));
+    *account_balance[num_account] = 0;
+}
+
+void error_if_account_exists(int num_account) {
+    if(account_balance[num_account] == NULL) {
+        perror("Account does not exist!");
+        exit(-1);
+    }
+}
+
+void deposit(int num_account, int ammount) {
+    error_if_account_exists(num_account);
+    *account_balance[num_account] += ammount;
+    global_balance += ammount;
+}
+
+
+
+void withdraw_money(int num_account, int ammount) {
+    error_if_account_exists(num_account);
+    *account_balance[num_account] -= ammount;
+    global_balance -= ammount;
+}
+
+void transfer(int num_account1, int num_account2, int ammount) {
+    error_if_account_exists(num_account1);
+    error_if_account_exists(num_account2);
+    *account_balance[num_account1] -= ammount;
+    *account_balance[num_account2] += ammount;
+
+}
+
+void print_account(int num_account) {
+    printf("GLOBAL BALANCE: %lld\n-----------\nACCOUNT %d\nMONEY = %ld\n-----------\n", global_balance, num_account, *account_balance[num_account]);
+}
+
+void do_action(char* operation) {
+    char *line;
+    int param1;
+    int param2;
+    int param3;
+
+    sscanf(operation, "%s %d %d %d", line, &param1, &param2, &param3);
+    if (strncmp(line, "CREATE", 7) == 0) {
+        create_account(param1);
+    } else if (strncmp(line, "DEPOSIT", 8) == 0) {
+        deposit(param1, param2);
+        print_account(param1);
+
+    } else if (strncmp(line, "WITHDRAW", 9) == 0){
+        withdraw_money(param1, param2);
+        print_account(param1);
+    }
+    else if (strncmp(line, "TRANSFER", 9) == 0){
+        transfer(param1, param2, param3);
+    }
+    else if (strncmp(line, "BALANCE", 8) == 0){
+        print_account(param1);
+    }
+    else {
+            printf("UNKNOWN OPERATION: %s\n", line);
+    }
+}
+
 void consumer(queue *q) {
     printf("b");
-    for(;;){
-
+    while(bank_numop < n_commands){
         sem_wait(&sem_consumer);
 
         sem_wait(&mu);
@@ -198,7 +267,7 @@ void consumer(queue *q) {
         o = *queue_get(q);
         bank_numop++;
         printf("got element: %s\n", o.operation);
-
+        do_action(o.operation);
         sem_post(&mu);
 
         sem_post(&sem_producer);
@@ -223,9 +292,9 @@ int main (int argc, const char * argv[] ) {
     pthread_cond_init(&non_empty, NULL);
 
 
-    account_balance = malloc(sizeof(long int)*max_accounts);
+    account_balance = malloc(sizeof(long int *)*max_accounts);
 
-    init_list_clients(argv[1], list_clients_ops);
+    n_commands = init_list_clients(argv[1], list_clients_ops);
 
     sem_init(&mu, 0, 1);
     sem_init(&sem_producer, 0, 1);
@@ -250,6 +319,7 @@ int main (int argc, const char * argv[] ) {
         pthread_join(thid_workers[i], NULL);
     }
 
+    queue_destroy(&q);
     sem_destroy(&mu);
 
     pthread_mutex_destroy(&mutex);
