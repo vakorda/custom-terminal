@@ -29,6 +29,7 @@ long long int global_balance = 0;
 char ** list_clients_ops;
 long int ** account_balance;
 int n_commands;
+int max_accounts;
 sem_t mu;
 sem_t sem_producer;
 sem_t sem_consumer;
@@ -208,8 +209,6 @@ void deposit(int num_account, int ammount) {
     global_balance += ammount;
 }
 
-
-
 void withdraw_money(int num_account, int ammount) {
     error_if_account_exists(num_account);
     *account_balance[num_account] -= ammount;
@@ -228,15 +227,30 @@ void print_account(int num_account) {
     printf("GLOBAL BALANCE: %lld\n-----------\nACCOUNT %d\nMONEY = %ld\n-----------\n", global_balance, num_account, *account_balance[num_account]);
 }
 
+void print_all_accounts(int mark1, int mark2) {
+    printf(" ACCOUNT  |  MONEY\n"
+           "--------------------\n");
+    for(int i=1; i <= max_accounts; i++)
+        if(account_balance[i] != NULL) {
+            if(i == mark1) printf("\033[1;31m");
+            else if(i == mark2) printf("\033[1;32m");
+            printf(" %-11d %-5ld$\n", i, *account_balance[i]);
+            if(i == mark1 || i == mark2) printf("\033[0;29m");
+        }
+    printf("--------------------\n"
+           " TOTAL %6s%-5lld$\n", "", global_balance);
+}
+
 void do_action(char* operation) {
     char *line;
     int param1;
     int param2;
     int param3;
-
+    printf("\033[1;33m%s\n\033[0;29m", operation);
     sscanf(operation, "%s %d %d %d", line, &param1, &param2, &param3);
     if (strncmp(line, "CREATE", 7) == 0) {
         create_account(param1);
+        print_all_accounts(param1, -1);
     } else if (strncmp(line, "DEPOSIT", 8) == 0) {
         deposit(param1, param2);
         print_account(param1);
@@ -247,6 +261,7 @@ void do_action(char* operation) {
     }
     else if (strncmp(line, "TRANSFER", 9) == 0){
         transfer(param1, param2, param3);
+        print_all_accounts(param1, param2);
     }
     else if (strncmp(line, "BALANCE", 8) == 0){
         print_account(param1);
@@ -266,7 +281,7 @@ void consumer(queue *q) {
         element o;
         o = *queue_get(q);
         bank_numop++;
-        printf("got element: %s\n", o.operation);
+        // printf("got element: %s\n", o.operation);
         do_action(o.operation);
         sem_post(&mu);
 
@@ -284,7 +299,7 @@ int main (int argc, const char * argv[] ) {
     int prods = atoi(argv[2]);
     int cons = atoi(argv[3]);
     printf("prods: %d, cons: %d\n", prods, cons);
-    int max_accounts = atoi(argv[4]);
+    max_accounts = atoi(argv[4]);
     int buff_size = atoi(argv[5]);
 
     pthread_mutex_init(&mutex, NULL);
