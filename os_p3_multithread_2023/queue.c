@@ -40,7 +40,7 @@ int queue_put(queue *q, struct element* x) {
         if (q -> filled < 0) {
             q -> filled = q -> size + q -> filled + 1;
         }
-        printf("af: num_elems = %d, tail= %d, head = %d, size = %d\n", q -> filled, q -> tail, q -> head, q -> size);
+        //printf("af: num_elems = %d, tail= %d, head = %d, size = %d\n", q -> filled, q -> tail, q -> head, q -> size);
 
         return 0;
     } else {
@@ -96,13 +96,3 @@ int print_elems(queue* q) {
     }
     printf("\n");
 }
-
-/*int main() {
-    queue *q = queue_init(3);
-    element o;
-    char *a = "juan";
-    o.operation = a;
-    queue_put(q, &o);
-    print_elems(q);
-
-}*/
