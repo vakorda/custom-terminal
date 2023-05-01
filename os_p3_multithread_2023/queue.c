@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "queue.h"
+#include <unistd.h>
 
 
 
@@ -26,16 +27,24 @@ queue* queue_init(int size) {
 
 // To Enqueue an element
 int queue_put(queue *q, struct element* x) {
+    //printf("bef: num_elems = %d, tail= %d, head = %d, size = %d\n", q -> filled, q -> tail, q -> head, q -> size);
+    fflush(stdout);
     if(q -> filled != q -> size) {
         if (q -> filled == 0) {
             q -> buffer[q -> tail] = *x;
         } else {
-            q -> buffer[q -> tail + 1] = *x;
+            q -> buffer[(q -> tail + 1) % (q -> size)] = *x;
+            q -> tail = (q -> tail + 1) % q -> size;
         }
-        q -> tail = (q -> tail + 1) % q -> size;
-        q -> filled = (q -> tail - q -> head) % q -> size;
+        q -> filled = q -> tail - q -> head + 1;
+        if (q -> filled < 0) {
+            q -> filled = q -> size + q -> filled + 1;
+        }
+        printf("af: num_elems = %d, tail= %d, head = %d, size = %d\n", q -> filled, q -> tail, q -> head, q -> size);
+
         return 0;
     } else {
+        fprintf(stderr, "\033[1;31mcannot put in position %d\n\033[0;38m", (q ->tail + 1) % q ->size);
         return -1;
     }
 }
@@ -44,9 +53,21 @@ int queue_put(queue *q, struct element* x) {
 // To Dequeue an element.
 struct element* queue_get(queue *q) {
     if (q -> filled != 0) {
+
         element *head = &q -> buffer[q -> head];
-        q -> head = (q -> head + 1) % q -> size;
-        q -> filled = (q -> tail - q -> head) % q -> size;
+        if(q -> head == q ->tail) {
+            q -> filled  = 0;
+        } else {
+            q -> head = (q -> head + 1) % q -> size;
+
+            q -> filled = q -> tail - q -> head + 1;
+
+            if (q -> filled < 0) {
+                q -> filled = q -> size + q -> filled + 1;
+            }
+        }
+
+
         return head;
     }
     return (element *) (- 1);
@@ -68,3 +89,20 @@ int queue_destroy(queue *q){
     free(q);
     return 0;
 }
+
+int print_elems(queue* q) {
+    for(int i=0; i<q -> size; i++) {
+        printf("%d:[%s]  ", i, q -> buffer[i].operation);
+    }
+    printf("\n");
+}
+
+/*int main() {
+    queue *q = queue_init(3);
+    element o;
+    char *a = "juan";
+    o.operation = a;
+    queue_put(q, &o);
+    print_elems(q);
+
+}*/
