@@ -209,6 +209,7 @@ void do_action(char* operation) {
     else {
             printf("UNKNOWN OPERATION: %s\n", *line);
     }
+    free(line);
 }
 
 void producer(queue *q) {
@@ -314,6 +315,8 @@ int main (int argc, const char * argv[] ) {
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&full);
     pthread_cond_destroy(&empty);
-
+    
+    free(list_clients_ops);
+    free(account_balance);
     return 0;
 }
