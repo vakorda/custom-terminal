@@ -33,14 +33,15 @@ int queue_put(queue *q, struct element* x) {
         if (q -> filled == 0) {
             q -> buffer[q -> tail] = *x;
         } else {
-            q -> buffer[(q -> tail + 1) % (q -> size)] = *x;
             q -> tail = (q -> tail + 1) % q -> size;
+            q -> buffer[q -> tail] = *x;
+
         }
         q -> filled = q -> tail - q -> head + 1;
-        if (q -> filled < 0) {
-            q -> filled = q -> size + q -> filled + 1;
+        if (q -> filled <= 0) {
+            q -> filled = q -> size + q -> filled;
         }
-        //printf("af: num_elems = %d, tail= %d, head = %d, size = %d\n", q -> filled, q -> tail, q -> head, q -> size);
+        printf("af: num_elems = %d, tail= %d, head = %d, size = %d\n", q -> filled, q -> tail, q -> head, q -> size);
 
         return 0;
     } else {
@@ -62,8 +63,8 @@ struct element* queue_get(queue *q) {
 
             q -> filled = q -> tail - q -> head + 1;
 
-            if (q -> filled < 0) {
-                q -> filled = q -> size + q -> filled + 1;
+            if (q -> filled <= 0) {
+                q -> filled = q -> size + q -> filled;
             }
         }
 
@@ -86,13 +87,35 @@ int queue_full(queue *q){
 //To destroy the queue and free the resources
 int queue_destroy(queue *q){
     free(q -> buffer);
-    free(q);
+    //free(q);
     return 0;
 }
 
 int print_elems(queue* q) {
     for(int i=0; i<q -> size; i++) {
-        printf("%d:[%s]  ", i, q -> buffer[i].operation);
+        if(q -> head == q -> tail){
+            if(q -> filled == 1 && i == q -> head) {
+                printf("%d:[%s]  ", i, q -> buffer[i].operation);
+            } else {
+                printf("\033[1;31m");
+                printf("%d:[%s]  ", i, q -> buffer[i].operation);
+                printf("\033[0;29m");
+            }
+        }
+        else if(q -> head < q -> tail) {
+            if(!(q -> head <= i && i <= q -> tail)){
+                printf("\033[1;31m");
+                printf("%d:[%s]  ", i, q -> buffer[i].operation);
+                printf("\033[0;29m");
+            } else printf("%d:[%s]  ", i, q -> buffer[i].operation);
+        }
+        else {
+            if((q -> tail < i && i < q -> head)){
+                printf("\033[1;31m");
+                printf("%d:[%s]  ", i, q -> buffer[i].operation);
+                printf("\033[0;29m");
+            } else printf("%d:[%s]  ", i, q -> buffer[i].operation);
+        }
     }
     printf("\n");
 }
