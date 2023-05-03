@@ -251,8 +251,8 @@ void consumer(queue *q) {
         do_action(o.operation);
         printf("DID OPERATION %s\n", o.operation);
         bank_numop++;
-        
-        pthread_cond_signal(&empty);
+        print_elems(q);
+        pthread_cond_signal(&full);
         pthread_mutex_unlock(&mutex);
         
        
