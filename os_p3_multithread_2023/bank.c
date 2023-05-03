@@ -30,96 +30,23 @@ char ** list_clients_ops;
 long int ** account_balance;
 int n_commands;
 int max_accounts;
-sem_t mu;
-sem_t sem_producer;
-sem_t sem_consumer;
- /*
- int curr_atm = 0;
- int curr_worker = 0;
-
-char * parser(const char * file){
-        int n = 0;
-        char buffer[1];
-        int fd_open= open(file,O_RDONLY);
-        if (fd_open < 0)exit(-1);
-        int current;
-        while ((current = read(fd_open,buffer,1) > 0)){
-            while(buffer[0] != '\n') {
-                char words[20] = "";
-                int i = 0;
-                while (buffer[0] != ' ' && buffer[0] != '\n'){
-                        words[i] = buffer[0];
-                        current = read(fd_open, buffer,1);
-                        i++;
-                }
-                printf("words: %s\n",words);
-                if (strncmp(words, "CREATE", 7)==0){
-                        printf("LLEGUE A CREATE\n");
-                        current = read(fd_open, buffer,1);
-                        char words[5] = "";
-                        int i = 0;
-                        while (buffer[0] != ' ' && buffer[0] != '\n'){
-                                words[i] = buffer[0];
-                                current = read(fd_open, buffer,1);
-                                i++;
-                        }
-                        printf("%s\n",words);
-                        ATMs[curr_atm] = words;
-                        curr_atm += 1;
-                }
-                else if (strncmp(words, "DEPOSIT", 8)==0){
-                        printf("LLEGUE A DEPOSIT\n");
-                        current = read(fd_open, buffer,1);
-                        char words[5] = "";
-                        int i = 0;
-                        while (buffer[0] != '\n'){
-                                if (buffer[0] != ' '){
-                                words[i] = buffer[0];
-                                i++;
-                                }
-                                else{
-                                printf("%s\n",words);
-                                ATMs[curr_atm] = words;
-                                curr_atm += 1;
-                                }
-                                current = read(fd_open, buffer,1);
-
-                        }
+//sem_t mu;
+//sem_t sem_producer;
+//sem_t sem_consumer;
+pthread_mutex_t mutex;
+pthread_cond_t full;
+pthread_cond_t empty;
 
 
-                }
-                else if (strncmp(words, "WITHDRAW", 9)==0){
-                        printf("LLEGUE A WITHDRAW\n");
-                }
-                else if (strncmp(words, "TRANSFER", 9)==0){
-                        printf("LLEGUE A TRANSFER\n");
-                }
-                else if (strncmp(words, "BALANCE", 8)==0){
-                        printf("LLEGUE A BALANCE\n");
-                }
-                else {
-                        printf("UNKNOWN OPERATION: %s\n",words);
-                }
-                current = read(fd_open, buffer,1);
-            }
-        }
-
-}
-*/
-
-int init_list_clients(const char *file, char **list_client_ops);
-int check_arguments(int argc, const char *argv[]);
-void producer(queue *q);
-void consumer(queue *q);
 
 int init_list_clients(const char * file, char **list_client_ops) {
-    char n_commands[3];
+    char first_line[30];
     FILE * fd_open= fopen(file,"r");
     if (fd_open == NULL) exit(-1);
-    fgets(n_commands,30,fd_open);
-    int n_command = atoi(n_commands);
+    fgets(first_line,30,fd_open);
+    int n_command = atoi(first_line);
 
-    if (!n_command && strncmp(n_commands,"0",2)){
+    if (!n_command && strncmp(first_line,"0",2)){
             perror("first lie is not a number!!");
             exit(-1);
     } else if (n_command > 200){
@@ -171,21 +98,13 @@ int check_arguments(int argc, const char *argv[]) {
     return 0;
 }
 
-void producer(queue *q) {
-
-   while(client_numop < n_commands){
-        sem_wait(&sem_producer);
-        sem_wait(&mu);
-        element o;
-        o.operation = list_clients_ops[client_numop++];
-        queue_put(q, &o);
-        // print_elems(q);
-
-        sem_post(&mu);
-        sem_post(&sem_consumer);
-    }
-    pthread_exit(NULL);
+int check_argument(char * line){
+	if(!atoi(line) && strncmp(line, "0", 2)) {
+		perror("Number of ATMs must be a number!!\n");
+		exit(-1);
+	    }
 }
+
 
 void create_account(int num_account) {
     if(account_balance[num_account] != NULL) {
@@ -227,10 +146,14 @@ void print_account(int num_account) {
     printf("GLOBAL BALANCE: %lld\n-----------\nACCOUNT %d\nMONEY = %ld\n-----------\n", global_balance, num_account, *account_balance[num_account]);
 }
 
+void teachers_print(int num_accounts,char * instruction){
+    printf("%d %s BALANCE = %ld TOTAL = %lld", bank_numop, instruction, *account_balance[num_accounts], global_balance);
+}
+
 void print_all_accounts(int mark1, int mark2) {
     printf(" ACCOUNT  |  MONEY\n"
            "--------------------\n");
-    for(int i=1; i <= max_accounts; i++)
+    for(int i=1; i < max_accounts; i++)
         if(account_balance[i] != NULL) {
             if(i == mark1) printf("\033[1;31m");
             else if(i == mark2) printf("\033[1;32m");
@@ -242,78 +165,126 @@ void print_all_accounts(int mark1, int mark2) {
 }
 
 void do_action(char* operation) {
-    char *line;
-    int param1;
-    int param2;
-    int param3;
+    char ** line = (char **)malloc(sizeof(char*)*4);
+    
     printf("\033[1;33m%s\n\033[0;29m", operation);
-    sscanf(operation, "%s %d %d %d", line, &param1, &param2, &param3);
-    if (strncmp(line, "CREATE", 7) == 0) {
-        create_account(param1);
-        print_all_accounts(param1, -1);
-    } else if (strncmp(line, "DEPOSIT", 8) == 0) {
-        deposit(param1, param2);
-        print_account(param1);
+    char * op = strtok(operation," ");
+    int i = 0;
+    while (op != NULL && i < 4){
+    	line[i] = op;
+    	op = strtok(NULL," ");
+    	i++;
+    }
+    
+    if (strncmp(line[0], "CREATE", 7) == 0) {
+    	check_argument(line[1]);
+    	
+        create_account(atoi(line[1]));
+        print_account(atoi(line[1]));
+    } else if (strncmp(line[0], "DEPOSIT", 8) == 0) {
+	for (int i = 1; i < 3;i++){
+	    check_argument(line[i]);
+	   }
+        deposit(atoi(line[1]), atoi(line[2]));
+        print_account(atoi(line[1]));
 
-    } else if (strncmp(line, "WITHDRAW", 9) == 0){
-        withdraw_money(param1, param2);
-        print_account(param1);
+    } else if (strncmp(line[0], "WITHDRAW", 9) == 0){
+	for (int i = 1; i < 3;i++){
+	    check_argument(line[i]);
+	   }
+        withdraw_money(atoi(line[1]), atoi(line[2]));
+        print_account(atoi(line[1]));
     }
-    else if (strncmp(line, "TRANSFER", 9) == 0){
-        transfer(param1, param2, param3);
-        print_all_accounts(param1, param2);
+    else if (strncmp(line[0], "TRANSFER", 9) == 0){
+    	for (int i = 1; i < 4;i++){
+	    check_argument(line[i]);
+	   }
+        transfer(atoi(line[1]), atoi(line[2]), atoi(line[3]));
+        print_all_accounts(atoi(line[2]), atoi(line[2]));
     }
-    else if (strncmp(line, "BALANCE", 8) == 0){
-        print_account(param1);
+    else if (strncmp(line[0], "BALANCE", 8) == 0){
+    	check_argument(line[1]);
+        print_account(atoi(line[1]));
     }
     else {
-            printf("UNKNOWN OPERATION: %s\n", line);
+            printf("UNKNOWN OPERATION: %s\n", *line);
     }
+}
+
+void producer(queue *q) {
+    while(client_numop < n_commands){
+        //sem_wait(&sem_producer);
+        //sem_wait(&mu);
+        pthread_mutex_lock(&mutex);
+        while (queue_full(q)==0){
+        	pthread_cond_wait(&full, &mutex);
+        }
+        element o;
+        o.operation = list_clients_ops[client_numop++];
+        queue_put(q, &o);
+        
+        pthread_cond_signal(&empty);
+        pthread_mutex_unlock(&mutex);
+        
+        // print_elems(q);
+
+        //sem_post(&mu);
+        //sem_post(&sem_consumer);
+    }
+    pthread_exit(0);
 }
 
 void consumer(queue *q) {
-    printf("b");
-    while(bank_numop < n_commands){
-        sem_wait(&sem_consumer);
+     while(bank_numop < n_commands){
+        //sem_wait(&sem_consumer);
 
-        sem_wait(&mu);
+        //sem_wait(&mu);
 
+
+        pthread_mutex_lock(&mutex);
+        
+        while (queue_empty(q)==0){
+        	pthread_cond_wait(&empty, &mutex);
+        }
         element o;
         o = *queue_get(q);
-        bank_numop++;
-        // printf("got element: %s\n", o.operation);
         do_action(o.operation);
-        sem_post(&mu);
+        printf("DID OPERATION %s\n", o.operation);
+        bank_numop++;
+        
+        pthread_cond_signal(&empty);
+        pthread_mutex_unlock(&mutex);
+        
+       
+        //sem_post(&mu);
 
-        sem_post(&sem_producer);
+        //sem_post(&sem_producer);
     }
-    pthread_exit(NULL);
+    pthread_exit(0);
 }
 
-pthread_mutex_t mutex;
-pthread_cond_t non_full;
-pthread_cond_t non_empty;
 
 int main (int argc, const char * argv[] ) {
     check_arguments(argc, argv);
     int prods = atoi(argv[2]);
     int cons = atoi(argv[3]);
-    printf("prods: %d, cons: %d\n", prods, cons);
+    //printf("prods: %d, cons: %d\n", prods, cons);
     max_accounts = atoi(argv[4]);
     int buff_size = atoi(argv[5]);
-
-    pthread_mutex_init(&mutex, NULL);
-    pthread_cond_init(&non_full, NULL);
-    pthread_cond_init(&non_empty, NULL);
-
 
     account_balance = malloc(sizeof(long int *)*max_accounts);
 
     n_commands = init_list_clients(argv[1], list_clients_ops);
 
-    sem_init(&mu, 0, 1);
-    sem_init(&sem_producer, 0, 1);
-    sem_init(&sem_consumer, 0, 0);
+    //sem_init(&mu, 0, 1);
+    //sem_init(&sem_producer, 0, 1);
+    //sem_init(&sem_consumer, 0, 0);
+    //printf("%d\n",n_commands);
+    pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&full, NULL);
+    pthread_cond_init(&empty, NULL);
+
+    
 
     queue q;
     q = *queue_init(buff_size);
@@ -323,6 +294,7 @@ int main (int argc, const char * argv[] ) {
     for(int i = 0;  i < prods; i++){
         pthread_create(&thid_atm[i], NULL, (void *)producer, &q);
     }
+    
     for(int i = 0;  i < cons; i++){
         pthread_create(&thid_workers[i], NULL, (void *)consumer, &q);
     }
@@ -330,16 +302,18 @@ int main (int argc, const char * argv[] ) {
     for(int i = 0;  i < prods; i++){
         pthread_join(thid_atm[i], NULL);
     }
+    
     for(int i = 0;  i < cons; i++){
         pthread_join(thid_workers[i], NULL);
     }
 
     queue_destroy(&q);
-    sem_destroy(&mu);
+    
+    //sem_destroy(&mu);
 
     pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&non_full);
-    pthread_cond_destroy(&non_empty);
+    pthread_cond_destroy(&full);
+    pthread_cond_destroy(&empty);
 
     return 0;
 }
