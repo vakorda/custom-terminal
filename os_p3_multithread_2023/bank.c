@@ -34,8 +34,8 @@ int max_accounts;
 //sem_t sem_producer;
 //sem_t sem_consumer;
 pthread_mutex_t mutex;
-pthread_cond_t full;
-pthread_cond_t empty;
+pthread_cond_t no_full;
+pthread_cond_t no_empty;
 
 
 
@@ -218,49 +218,49 @@ void producer(queue *q) {
         //sem_wait(&mu);
         pthread_mutex_lock(&mutex);
         while (queue_full(q)==0){
-                pthread_cond_wait(&full, &mutex);
+            pthread_cond_wait(&no_full, &mutex);
         }
-        element o;
-        o.operation = list_clients_ops[client_numop++];
-        queue_put(q, &o);
-
-        pthread_cond_signal(&empty);
+        if(client_numop < n_commands){
+            element o;
+            o.operation = list_clients_ops[client_numop];
+            queue_put(q, &o);
+            client_numop++;
+            //printf("client_numop: %d\n",client_numop);
+            print_elems(q);
+            pthread_cond_signal(&no_empty);
+        }
         pthread_mutex_unlock(&mutex);
-
-        print_elems(q);
-
         //sem_post(&mu);
         //sem_post(&sem_consumer);
     }
+    printf("\033[1;36mPRODUCER FINNISHED\033[0;29m\n");
     pthread_exit(0);
 }
 
 void consumer(queue *q) {
      while(bank_numop < n_commands){
-        //sem_wait(&sem_consumer);
-
-        //sem_wait(&mu);
-
-
         pthread_mutex_lock(&mutex);
 
-        while (queue_empty(q)==0){
-                pthread_cond_wait(&empty, &mutex);
+        while (queue_empty(q)==0 && bank_numop < n_commands){
+            pthread_cond_wait(&no_empty, &mutex);
         }
-        element o;
-        o = *queue_get(q);
-        do_action(o.operation);
-        printf("DID OPERATION %s\n", o.operation);
-        bank_numop++;
-        print_elems(q);
-        pthread_cond_signal(&full);
+        if(bank_numop < n_commands){
+            element o;
+            o = *queue_get(q);
+            do_action(o.operation);
+            printf("DID OPERATION %s\n", o.operation);
+            print_elems(q);
+            bank_numop++;
+            //printf("bank_numop: %d\n",bank_numop);
+            pthread_cond_signal(&no_full);
+        }
         pthread_mutex_unlock(&mutex);
-
-
         //sem_post(&mu);
 
         //sem_post(&sem_producer);
     }
+    pthread_cond_signal(&no_empty);
+    printf("\033[1;36mCONSUMER FINNISHED\033[0;29m\n");
     pthread_exit(0);
 }
 
@@ -282,8 +282,8 @@ int main (int argc, const char * argv[] ) {
     //sem_init(&sem_consumer, 0, 0);
     //printf("%d\n",n_commands);
     pthread_mutex_init(&mutex, NULL);
-    pthread_cond_init(&full, NULL);
-    pthread_cond_init(&empty, NULL);
+    pthread_cond_init(&no_full, NULL);
+    pthread_cond_init(&no_empty, NULL);
 
 
 
@@ -313,8 +313,8 @@ int main (int argc, const char * argv[] ) {
     //sem_destroy(&mu);
 
     pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&full);
-    pthread_cond_destroy(&empty);
+    pthread_cond_destroy(&no_full);
+    pthread_cond_destroy(&no_empty);
 
     free(list_clients_ops);
     free(account_balance);
