@@ -41,7 +41,7 @@ int queue_put(queue *q, struct element* x) {
         if (q -> filled <= 0) {
             q -> filled = q -> size + q -> filled;
         }
-        printf("af: num_elems = %d, tail= %d, head = %d, size = %d\n", q -> filled, q -> tail, q -> head, q -> size);
+        //printf("af: num_elems = %d, tail= %d, head = %d, size = %d\n", q -> filled, q -> tail, q -> head, q -> size);
 
         return 0;
     } else {
@@ -119,3 +119,44 @@ int print_elems(queue* q) {
     }
     printf("\n");
 }
+
+/*
+int print_cycle(queue* q) {
+    int pos = q -> head;
+    printf("\033[0;30m");
+    printf("%d:[%s]  ", pos, q -> buffer[pos].operation);
+    printf("\033[0;29m");
+    pos = (pos + 1) % q -> size;
+    while(pos != q -> tail) {
+        printf("%d:[%s]  ", pos, q -> buffer[pos].operation);
+        pos = (pos + 1) % q -> size;
+    }
+    pos = q -> head;
+    printf("\n\033[1;32m");
+    printf("%d:[%s]  ", pos, q -> buffer[pos].operation);
+    printf("\033[0;30m");
+    if(q -> filled >= (q -> size - q -> filled + 2)){
+        while(pos != q -> tail) {
+            printf("%d:[%s]  ", pos, q -> buffer[pos].operation);
+            pos = (pos + 1) % q -> size;
+        }
+    } else {
+        pos = q -> tail;
+        pos = (pos + 1) % q -> size;
+        while(pos != q -> head) {
+            printf("%d:[%s]  ", pos, q -> buffer[pos].operation);
+            pos = (pos + 1) % q -> size;
+        }
+        pos = q -> tail;
+    }
+    printf("\033[1;33m");
+    printf("%d:[%s]\n\033[0;30m", pos, q -> buffer[pos].operation);
+    printf("%d:[%s]  \033[1;31m", pos, q -> buffer[q -> head].operation);
+    pos = (pos + 1) % q -> size;
+    while(pos != q -> head) {
+        printf("%d:[%s]  ", pos, q -> buffer[pos].operation);
+        pos = (pos + 1) % q -> size;
+    }
+    printf("\n");
+}
+*/
