@@ -66,7 +66,7 @@ int init_list_clients(const char * file, char **list_client_ops) {
 }
 
 int check_arguments(int argc, const char *argv[]) {
-    if(argc < 6) {
+    if(argc != 6) {
         perror("Number of arguments incorrect!!\n");
         exit(-1);
     }
@@ -102,7 +102,13 @@ int check_argument(char * line){
 
 
 void create_account(int num_account) {
-    if(account_balance[num_account - 1] != NULL) {
+    if(num_account > max_accounts || num_account < 1 ){
+    	perror("NUM_ACCOUNT IS GREATER THAN MAX__ACCOUNTS");
+    	exit(-1);
+    }
+    
+    
+    else if (account_balance[num_account - 1] != NULL) {
         perror("Account already exists!");
         exit(-1);
     }
@@ -111,7 +117,11 @@ void create_account(int num_account) {
 }
 
 void error_if_account_exists(int num_account) {
-    if(account_balance[num_account - 1] == NULL) {
+    if(num_account > max_accounts || num_account < 1 ){
+    	perror("NUM_ACCOUNT IS GREATER THAN MAX__ACCOUNTS");
+    	exit(-1);
+    }
+     else if(account_balance[num_account - 1] == NULL) {
         perror("Account does not exist!");
         exit(-1);
     }
@@ -215,7 +225,7 @@ void do_action(char* operation) {
 void producer(queue *q) {
     while(client_numop < n_commands){
         pthread_mutex_lock(&mutex);
-        while (queue_full(q)==0){
+        while (queue_full(q)==0 && client_numop < n_commands){
             pthread_cond_wait(&no_full, &mutex);
         }
         if(client_numop < n_commands){
@@ -229,6 +239,7 @@ void producer(queue *q) {
         }
         pthread_mutex_unlock(&mutex);
     }
+    pthread_cond_signal(&no_full);
     //printf("\033[1;36mPRODUCER FINNISHED\033[0;29m\n");
     pthread_exit(0);
 }
@@ -249,9 +260,10 @@ void consumer(queue *q) {
             bank_numop++;
             //printf("bank_numop: %d\n",bank_numop);
             pthread_cond_signal(&no_full);
-        }else pthread_cond_signal(&no_empty);
+        }
         pthread_mutex_unlock(&mutex);
     }
+    pthread_cond_signal(&no_empty);
     //printf("\033[1;36mCONSUMER FINNISHED\033[0;29m\n");
     pthread_exit(0);
 }
@@ -261,12 +273,9 @@ int main (int argc, const char * argv[] ) {
     check_arguments(argc, argv);
     int prods = atoi(argv[2]);
     int cons = atoi(argv[3]);
-    if (prods == 0 || cons == 0) {
-    	perror("PRODUCERS AND CONSUMERS CANT BE 0");
-    	exit(-1);
-    }
     
     max_accounts = atoi(argv[4]);
+    //printf("MAX ACC: %d\n",max_accounts);
     int buff_size = atoi(argv[5]);
 
     account_balance = malloc(sizeof(long int *)*max_accounts);
@@ -311,8 +320,7 @@ int main (int argc, const char * argv[] ) {
     return 0;
 }
 /*
-zip os_p3_100472343_100472280.zip bank.c queue.c queue.h authors.txt
+zip os_p3_100472343_100472280.zip bank.c queue.c queue.h authors.txt Makefile 
 chmod +x checker_os_p3.sh
 ./checker_os_p3.sh os_p3_100472343_100472280.zip
 */
-
