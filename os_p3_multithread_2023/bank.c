@@ -38,13 +38,13 @@ pthread_cond_t no_empty;
 
 
 int init_list_clients(const char * file, char **list_client_ops) {
-    char first_line[30];
+    char buff[30];
     FILE * fd_open= fopen(file,"r");
     if (fd_open == NULL) exit(-1);
-    fgets(first_line,30,fd_open);
-    int n_command = atoi(first_line);
+    fgets(buff,30,fd_open);
+    int n_command = atoi(buff);
 
-    if (!n_command && strncmp(first_line,"0",2)){
+    if (!n_command && strncmp(buff,"0",2)){
             perror("first lie is not a number!!");
             exit(-1);
     } else if (n_command > 200){
@@ -52,15 +52,26 @@ int init_list_clients(const char * file, char **list_client_ops) {
             exit(-1);
     }
     list_clients_ops = (char **)malloc(sizeof(char*)*n_command);
-    char buff[30];
-    for (int i = 0;i < n_command;i++){
-            if (fgets(buff,30,fd_open) != NULL){
-                list_clients_ops[i] = malloc(sizeof(char)*strlen(buff));
-                strcpy(list_clients_ops[i], buff);
-                list_clients_ops[i][strlen(list_clients_ops[i])-1] = '\0';
-            }
-
-    }
+    int n_lines = 0;
+    while (fgets(buff,30,fd_open) != NULL){
+    	if (n_lines > n_command){
+    		perror("MORE LINES THAN COMMANDS");
+    		free(list_clients_ops);
+    		exit(-1);
+    	}
+        list_clients_ops[n_lines] = malloc(sizeof(char)*strlen(buff));
+        strcpy(list_clients_ops[n_lines], buff);
+        list_clients_ops[n_lines][strlen(list_clients_ops[n_lines])-1] = '\0';
+        n_lines++;
+        }
+	if (n_lines < n_command){
+		perror("LESS LINES THAN COMMANDS");
+		free(list_clients_ops);
+		exit(-1);
+	}
+    /*for (int i = 0;i < n_command;i++){
+            printf("%s\n", list_clients_ops[i]);
+    }*/
     fclose(fd_open);
     return n_command;
 }
@@ -72,43 +83,41 @@ int check_arguments(int argc, const char *argv[]) {
     }
     // check producers
     if(!atoi(argv[2]) && strncmp(argv[2], "0", 2) || atoi(argv[2]) <= 0) {
-        perror("Number of ATMs must be a natural number!!\n");
+        perror("Number of ATMs must be a natural number!!");
         exit(-1);
     }
     //check consumers
     if(!atoi(argv[3]) && strncmp(argv[3], "0", 2)|| atoi(argv[3]) <= 0) {
-        perror("Number of workers must be a natural number!!\n");
+        perror("Number of workers must be a natural number!!");
         exit(-1);
     }
     //check max_accounts
     if(!atoi(argv[4]) && strncmp(argv[4], "0", 2)|| atoi(argv[4]) <= 0) {
-        perror("Number of max_accounts must be a natural number!!\n");
+        perror("Number of max_accounts must be a natural number!!");
         exit(-1);
     }
     //check buf_size
     if(!atoi(argv[5]) && strncmp(argv[5], "0", 2)|| atoi(argv[5]) <= 0) {
-        perror("Size of buffer must be a natual number!!\n");
+        perror("Size of buffer must be a natual number!!");
         exit(-1);
     }
     return 0;
 }
 
-int check_argument(char * line){
-    if(!atoi(line) && strncmp(line, "0", 2)) {
-        perror("Number of ATMs must be a number!!\n");
-	exit(-1);
-	}
+void check_argument(char * num){
+	// Check if a string can be converted into a number (for parser's parameters)
+        if(!atoi(num) && strncmp(num, "0", 2)) {
+                perror("Number of ATMs must be a number!!\n");
+                exit(-1);
+            }
 }
 
-
 void create_account(int num_account) {
-    if(num_account > max_accounts || num_account < 1 ){
-    	perror("NUM_ACCOUNT IS GREATER THAN MAX__ACCOUNTS");
-    	exit(-1);
+    if(num_account < 1 || num_account > max_accounts) {
+        perror("Cannot create account, maximum number of accounts exceeded!!");
+        exit(-1);
     }
-    
-    
-    else if (account_balance[num_account - 1] != NULL) {
+    else if(account_balance[num_account - 1] != NULL) {
         perror("Account already exists!");
         exit(-1);
     }
@@ -117,11 +126,12 @@ void create_account(int num_account) {
 }
 
 void error_if_account_exists(int num_account) {
-    if(num_account > max_accounts || num_account < 1 ){
-    	perror("NUM_ACCOUNT IS GREATER THAN MAX__ACCOUNTS");
-    	exit(-1);
+    // Funcion for checking if an account is trying to be accessed before created
+    if(num_account < 1 || num_account > max_accounts) {
+        perror("NUMBER OF ACCOUNTS MUST BE IN RANGE 1-MAX_ACCOUNTS");
+        exit(-1);
     }
-     else if(account_balance[num_account - 1] == NULL) {
+    else if(account_balance[num_account - 1] == NULL) {
         perror("Account does not exist!");
         exit(-1);
     }
@@ -147,29 +157,15 @@ void transfer(int num_account1, int num_account2, int ammount) {
 
 }
 
-void print_account(int num_account) {
-    printf("GLOBAL BALANCE: %lld\n-----------\nACCOUNT %d\nMONEY = %ld\n-----------\n", global_balance, num_account, *account_balance[num_account - 1]);
+
+void teachers_print(int num_accounts,char * instruction){
+    // Function for printing
+    printf("%d %s BALANCE = %ld TOTAL = %lld\n", bank_numop+1, instruction, *account_balance[num_accounts - 1], global_balance);
 }
 
-void teachers_print(int num_account,char * instruction){
-    printf("%d %s BALANCE = %ld TOTAL = %lld\n", bank_numop+1, instruction, *account_balance[num_account - 1], global_balance);
-}
-
-void print_all_accounts(int mark1, int mark2) {
-    printf(" ACCOUNT  |  MONEY\n"
-           "--------------------\n");
-    for(int i=1; i <= max_accounts; i++)
-        if(account_balance[i - 1] != NULL) {
-            if(i == mark1) printf("\033[1;31m");
-            else if(i == mark2) printf("\033[1;32m");
-            printf(" %-11d %-5ld$\n", i, *account_balance[i - 1]);
-            if(i == mark1 || i == mark2) printf("\033[0;29m");
-        }
-    printf("--------------------\n"
-           " TOTAL %6s%-5lld$\n", "", global_balance);
-}
 
 void do_action(char* operation) {
+    // Function in charge of identifying the instruction and calling the corresponding function
     char aux[30];
     strcpy(aux,operation);
     char ** line = (char **)malloc(sizeof(char*)*4);
@@ -185,14 +181,12 @@ void do_action(char* operation) {
         check_argument(line[1]);
 
         create_account(atoi(line[1]));
-        //print_account(atoi(line[1]));
         teachers_print(atoi(line[1]),aux);
     } else if (strncmp(line[0], "DEPOSIT", 8) == 0) {
         for (int i = 1; i < 3;i++){
             check_argument(line[i]);
            }
         deposit(atoi(line[1]), atoi(line[2]));
-        //print_account(atoi(line[1]));
         teachers_print(atoi(line[1]),aux);
 
     } else if (strncmp(line[0], "WITHDRAW", 9) == 0){
@@ -200,7 +194,6 @@ void do_action(char* operation) {
             check_argument(line[i]);
            }
         withdraw_money(atoi(line[1]), atoi(line[2]));
-        //print_account(atoi(line[1]));
         teachers_print(atoi(line[1]),aux);
     }
     else if (strncmp(line[0], "TRANSFER", 9) == 0){
@@ -208,12 +201,10 @@ void do_action(char* operation) {
             check_argument(line[i]);
            }
         transfer(atoi(line[1]), atoi(line[2]), atoi(line[3]));
-        //print_all_accounts(atoi(line[1]), atoi(line[2]));
         teachers_print(atoi(line[2]),aux);
     }
     else if (strncmp(line[0], "BALANCE", 8) == 0){
         check_argument(line[1]);
-        //print_account(atoi(line[1]));
         teachers_print(atoi(line[1]),aux);
     }
     else {
@@ -233,14 +224,11 @@ void producer(queue *q) {
             o.operation = list_clients_ops[client_numop];
             queue_put(q, &o);
             client_numop++;
-            //printf("client_numop: %d\n",client_numop);
-            //print_elems(q);
             pthread_cond_signal(&no_empty);
         }
         pthread_mutex_unlock(&mutex);
     }
     pthread_cond_signal(&no_full);
-    //printf("\033[1;36mPRODUCER FINNISHED\033[0;29m\n");
     pthread_exit(0);
 }
 
@@ -255,16 +243,12 @@ void consumer(queue *q) {
             element o;
             o = *queue_get(q);
             do_action(o.operation);
-            //printf("DID OPERATION %s\n", o.operation);
-            //print_elems(q);
             bank_numop++;
-            //printf("bank_numop: %d\n",bank_numop);
             pthread_cond_signal(&no_full);
         }
         pthread_mutex_unlock(&mutex);
     }
     pthread_cond_signal(&no_empty);
-    //printf("\033[1;36mCONSUMER FINNISHED\033[0;29m\n");
     pthread_exit(0);
 }
 
@@ -273,15 +257,12 @@ int main (int argc, const char * argv[] ) {
     check_arguments(argc, argv);
     int prods = atoi(argv[2]);
     int cons = atoi(argv[3]);
-    
     max_accounts = atoi(argv[4]);
-    //printf("MAX ACC: %d\n",max_accounts);
     int buff_size = atoi(argv[5]);
 
     account_balance = malloc(sizeof(long int *)*max_accounts);
 
     n_commands = init_list_clients(argv[1], list_clients_ops);
-
 
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&no_full, NULL);
@@ -316,11 +297,5 @@ int main (int argc, const char * argv[] ) {
 
     free(list_clients_ops);
     free(account_balance);
-    
     return 0;
 }
-/*
-zip os_p3_100472343_100472280.zip bank.c queue.c queue.h authors.txt Makefile 
-chmod +x checker_os_p3.sh
-./checker_os_p3.sh os_p3_100472343_100472280.zip
-*/
