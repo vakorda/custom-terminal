@@ -69,9 +69,6 @@ int init_list_clients(const char * file, char **list_client_ops) {
 		free(list_clients_ops);
 		exit(-1);
 	}
-    /*for (int i = 0;i < n_command;i++){
-            printf("%s\n", list_clients_ops[i]);
-    }*/
     fclose(fd_open);
     return n_command;
 }
