@@ -71,23 +71,23 @@ int check_arguments(int argc, const char *argv[]) {
         exit(-1);
     }
     // check producers
-    if(!atoi(argv[2]) && strncmp(argv[2], "0", 2)) {
-        perror("Number of ATMs must be a number!!\n");
+    if(!atoi(argv[2]) && strncmp(argv[2], "0", 2) || atoi(argv[2]) <= 0) {
+        perror("Number of ATMs must be a natural number!!\n");
         exit(-1);
     }
     //check consumers
-    if(!atoi(argv[3]) && strncmp(argv[3], "0", 2)) {
-        perror("Number of workers must be a number!!\n");
+    if(!atoi(argv[3]) && strncmp(argv[3], "0", 2)|| atoi(argv[3]) <= 0) {
+        perror("Number of workers must be a natural number!!\n");
         exit(-1);
     }
     //check max_accounts
-    if(!atoi(argv[4]) && strncmp(argv[4], "0", 2)) {
-        perror("Number of max_accounts must be a number!!\n");
+    if(!atoi(argv[4]) && strncmp(argv[4], "0", 2)|| atoi(argv[4]) <= 0) {
+        perror("Number of max_accounts must be a natural number!!\n");
         exit(-1);
     }
     //check buf_size
-    if(!atoi(argv[5]) && strncmp(argv[5], "0", 2)) {
-        perror("Size of buffer must be a number!!\n");
+    if(!atoi(argv[5]) && strncmp(argv[5], "0", 2)|| atoi(argv[5]) <= 0) {
+        perror("Size of buffer must be a natual number!!\n");
         exit(-1);
     }
     return 0;
@@ -310,4 +310,9 @@ int main (int argc, const char * argv[] ) {
     
     return 0;
 }
-//zip os_p3_100472343_100472280.zip bank.c queue.c queue.h authors.txt
+/*
+zip os_p3_100472343_100472280.zip bank.c queue.c queue.h authors.txt
+chmod +x checker_os_p3.sh
+./checker_os_p3.sh os_p3_100472343_100472280.zip
+*/
+
