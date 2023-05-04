@@ -107,7 +107,11 @@ int check_argument(char * line){
 
 
 void create_account(int num_account) {
-    if(account_balance[num_account - 1] != NULL) {
+    if(num_account < 1 || num_account > max_accounts) {
+        perror("Cannot create account, maximum number of accounts exceeded!!");
+        exit(-1);
+    }
+    else if(account_balance[num_account - 1] != NULL) {
         perror("Account already exists!");
         exit(-1);
     }
@@ -116,7 +120,11 @@ void create_account(int num_account) {
 }
 
 void error_if_account_exists(int num_account) {
-    if(account_balance[num_account - 1] == NULL) {
+    if(num_account < 1 || num_account > max_accounts) {
+        perror("aaa");
+        exit(-1);
+    }
+    else if(account_balance[num_account - 1] == NULL) {
         perror("Account does not exist!");
         exit(-1);
     }
@@ -147,7 +155,7 @@ void print_account(int num_account) {
 }
 
 void teachers_print(int num_accounts,char * instruction){
-    printf("%d %s BALANCE = %ld TOTAL = %lld", bank_numop, instruction, *account_balance[num_accounts - 1], global_balance);
+    printf("%d %s BALANCE = %ld TOTAL = %lld\n", bank_numop+1, instruction, *account_balance[num_accounts - 1], global_balance);
 }
 
 void print_all_accounts(int mark1, int mark2) {
@@ -165,9 +173,9 @@ void print_all_accounts(int mark1, int mark2) {
 }
 
 void do_action(char* operation) {
+    char aux[30];
+    strcpy(aux,operation);
     char ** line = (char **)malloc(sizeof(char*)*4);
-
-    printf("\033[1;33m%s\n\033[0;29m", operation);
     char * op = strtok(operation," ");
     int i = 0;
     while (op != NULL && i < 4){
@@ -180,34 +188,39 @@ void do_action(char* operation) {
         check_argument(line[1]);
 
         create_account(atoi(line[1]));
-        print_account(atoi(line[1]));
+        //print_account(atoi(line[1]));
+        teachers_print(atoi(line[1]),aux);
     } else if (strncmp(line[0], "DEPOSIT", 8) == 0) {
         for (int i = 1; i < 3;i++){
             check_argument(line[i]);
            }
         deposit(atoi(line[1]), atoi(line[2]));
-        print_account(atoi(line[1]));
+        //print_account(atoi(line[1]));
+        teachers_print(atoi(line[1]),aux);
 
     } else if (strncmp(line[0], "WITHDRAW", 9) == 0){
         for (int i = 1; i < 3;i++){
             check_argument(line[i]);
            }
         withdraw_money(atoi(line[1]), atoi(line[2]));
-        print_account(atoi(line[1]));
+        //print_account(atoi(line[1]));
+        teachers_print(atoi(line[1]),aux);
     }
     else if (strncmp(line[0], "TRANSFER", 9) == 0){
         for (int i = 1; i < 4;i++){
             check_argument(line[i]);
            }
         transfer(atoi(line[1]), atoi(line[2]), atoi(line[3]));
-        print_all_accounts(atoi(line[1]), atoi(line[2]));
+        //print_all_accounts(atoi(line[1]), atoi(line[2]));
+        teachers_print(atoi(line[2]),aux);
     }
     else if (strncmp(line[0], "BALANCE", 8) == 0){
         check_argument(line[1]);
-        print_account(atoi(line[1]));
+        //print_account(atoi(line[1]));
+        teachers_print(atoi(line[1]),aux);
     }
     else {
-            printf("UNKNOWN OPERATION: %s\n", *line);
+            printf("UNKNOWN OPERATION: %s\n", aux);
     }
     free(line);
 }
@@ -217,7 +230,7 @@ void producer(queue *q) {
         //sem_wait(&sem_producer);
         //sem_wait(&mu);
         pthread_mutex_lock(&mutex);
-        while (queue_full(q)==0){
+        while (queue_full(q)==0 && client_numop < n_commands){
             pthread_cond_wait(&no_full, &mutex);
         }
         if(client_numop < n_commands){
@@ -226,14 +239,15 @@ void producer(queue *q) {
             queue_put(q, &o);
             client_numop++;
             //printf("client_numop: %d\n",client_numop);
-            print_elems(q);
+            //print_elems(q);
             pthread_cond_signal(&no_empty);
         }
         pthread_mutex_unlock(&mutex);
         //sem_post(&mu);
         //sem_post(&sem_consumer);
     }
-    printf("\033[1;36mPRODUCER FINNISHED\033[0;29m\n");
+    pthread_cond_signal(&no_full);
+    // printf("\033[1;36mPRODUCER FINNISHED\033[0;29m\n");
     pthread_exit(0);
 }
 
@@ -248,8 +262,8 @@ void consumer(queue *q) {
             element o;
             o = *queue_get(q);
             do_action(o.operation);
-            printf("DID OPERATION %s\n", o.operation);
-            print_elems(q);
+            //printf("DID OPERATION %s\n", o.operation);
+            //print_elems(q);
             bank_numop++;
             //printf("bank_numop: %d\n",bank_numop);
             pthread_cond_signal(&no_full);
@@ -260,7 +274,7 @@ void consumer(queue *q) {
         //sem_post(&sem_producer);
     }
     pthread_cond_signal(&no_empty);
-    printf("\033[1;36mCONSUMER FINNISHED\033[0;29m\n");
+    // printf("\033[1;36mCONSUMER FINNISHED\033[0;29m\n");
     pthread_exit(0);
 }
 
