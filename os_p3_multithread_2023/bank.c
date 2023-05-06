@@ -55,20 +55,32 @@ void clean_all() {
     free(account_balance);
 }
 
+void check_argument(char * num){
+    // Check if a string can be converted into a number (for operations)
+    if(!atoi(num) && strncmp(num, "0", 2)) {
+            perror("Parameter is not an integer!!");
+            clean_all();
+            exit(-1);
+        }
+}
+
 void init_list_clients(const char * file) {
     /* Obtains operations from file and inserts the lines into list_clients_ops */
     char buff[30];
     FILE * fd_open= fopen(file,"r");
-    if (fd_open == NULL) exit(-1);
+    if (fd_open == NULL) {
+        perror("Cannot open input file file!");
+        exit(-1);
+    }
     fgets(buff,30,fd_open);
     n_commands = atoi(buff);
-
+    buff[strlen(buff)-1] = '\0';
     if (!n_commands && strncmp(buff,"0",2)){
             perror("First line is not a number!!");
             free(account_balance);
             exit(-1);
-    } else if (n_commands > 200){
-            perror("Number of operations greater than 200");
+    } else if (n_commands > 200 || n_commands < 0){
+            perror("Number of operations not in range [0-200]");
             free(account_balance);
             exit(-1);
     }
@@ -104,35 +116,26 @@ int check_arguments(int argc, const char *argv[]) {
         exit(-1);
     }
     // check producers
-    if(!atoi(argv[2]) && strncmp(argv[2], "0", 2) || atoi(argv[2]) <= 0) {
+    if(!atoi(argv[2]) || atoi(argv[2]) <= 0) {
         perror("Number of ATMs must be a natural number!!");
         exit(-1);
     }
     //check consumers
-    if(!atoi(argv[3]) && strncmp(argv[3], "0", 2)|| atoi(argv[3]) <= 0) {
+    if(!atoi(argv[3]) || atoi(argv[3]) <= 0) {
         perror("Number of workers must be a natural number!!");
         exit(-1);
     }
     //check max_accounts
-    if(!atoi(argv[4]) && strncmp(argv[4], "0", 2)|| atoi(argv[4]) <= 0) {
+    if(!atoi(argv[4]) || atoi(argv[4]) <= 0) {
         perror("Number of max_accounts must be a natural number!!");
         exit(-1);
     }
     //check buf_size
-    if(!atoi(argv[5]) && strncmp(argv[5], "0", 2)|| atoi(argv[5]) <= 0) {
+    if(!atoi(argv[5]) || atoi(argv[5]) <= 0) {
         perror("Size of buffer must be a natual number!!");
         exit(-1);
     }
     return 0;
-}
-
-void check_argument(char * num){
-    // Check if a string can be converted into a number (for operations)
-    if(!atoi(num) && strncmp(num, "0", 2)) {
-            perror("Parameter is not an integer\n");
-            clean_all();
-            exit(-1);
-        }
 }
 
 void create_account(int num_account) {
@@ -332,3 +335,10 @@ int main (int argc, const char * argv[] ) {
     clean_all();
     return 0;
 }
+
+
+/*
+zip os_p3_100472343_100472280.zip bank.c queue.c queue.h authors.txt
+chmod +x checker_os_p3.sh
+./checker_os_p3.sh os_p3_100472343_100472280.zip
+*/
