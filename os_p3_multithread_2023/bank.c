@@ -104,7 +104,7 @@ int check_arguments(int argc, const char *argv[]) {
 void check_argument(char * num){
 	// Check if a string can be converted into a number (for parser's parameters)
         if(!atoi(num) && strncmp(num, "0", 2)) {
-                perror("Number of ATMs must be a number!!\n");
+                perror("Parameter is not an integer\n");
                 exit(-1);
             }
 }
