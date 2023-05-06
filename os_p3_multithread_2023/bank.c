@@ -12,8 +12,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include <semaphore.h>
-
 
 
 /**
@@ -31,46 +29,60 @@ long int ** account_balance;
 int n_commands;
 int max_accounts;
 
+queue *q;
+
 pthread_mutex_t mutex;
 pthread_cond_t no_full;
 pthread_cond_t no_empty;
 
+void clean_all() {
+    queue_destroy(q);
 
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&no_full);
+    pthread_cond_destroy(&no_empty);
 
-int init_list_clients(const char * file, char **list_client_ops) {
+    free(list_clients_ops);
+    free(account_balance);
+}
+
+void init_list_clients(const char * file) {
     char buff[30];
     FILE * fd_open= fopen(file,"r");
     if (fd_open == NULL) exit(-1);
     fgets(buff,30,fd_open);
-    int n_command = atoi(buff);
+    n_commands = atoi(buff);
 
-    if (!n_command && strncmp(buff,"0",2)){
-            perror("first lie is not a number!!");
+    if (!n_commands && strncmp(buff,"0",2)){
+            perror("First line is not a number!!");
+            free(account_balance);
             exit(-1);
-    } else if (n_command > 200){
+    } else if (n_commands > 200){
             perror("Number of operations greater than 200");
+            free(account_balance);
             exit(-1);
     }
-    list_clients_ops = (char **)malloc(sizeof(char*)*n_command);
+    list_clients_ops = (char **)malloc(sizeof(char*)*n_commands);
     int n_lines = 0;
     while (fgets(buff,30,fd_open) != NULL){
-    	if (n_lines > n_command){
-    		perror("MORE LINES THAN COMMANDS");
-    		free(list_clients_ops);
-    		exit(-1);
-    	}
+        if (n_lines > n_commands){
+                perror("MORE LINES THAN COMMANDS");
+                free(list_clients_ops);
+                free(account_balance);
+                exit(-1);
+        }
         list_clients_ops[n_lines] = malloc(sizeof(char)*strlen(buff));
         strcpy(list_clients_ops[n_lines], buff);
         list_clients_ops[n_lines][strlen(list_clients_ops[n_lines])-1] = '\0';
         n_lines++;
         }
-	if (n_lines < n_command){
-		perror("LESS LINES THAN COMMANDS");
-		free(list_clients_ops);
-		exit(-1);
-	}
+        if (n_lines < n_commands){
+                perror("LESS LINES THAN COMMANDS");
+                free(list_clients_ops);
+                free(account_balance);
+                exit(-1);
+        }
     fclose(fd_open);
-    return n_command;
 }
 
 int check_arguments(int argc, const char *argv[]) {
@@ -102,20 +114,28 @@ int check_arguments(int argc, const char *argv[]) {
 }
 
 void check_argument(char * num){
-	// Check if a string can be converted into a number (for parser's parameters)
+        // Check if a string can be converted into a number (for parser's parameters)
         if(!atoi(num) && strncmp(num, "0", 2)) {
                 perror("Parameter is not an integer\n");
+                clean_all();
                 exit(-1);
             }
 }
 
 void create_account(int num_account) {
-    if(num_account < 1 || num_account > max_accounts) {
+    if (num_account < 1 ) {
+        perror("Cannot create negative account!!");
+        clean_all();
+        exit(-1);
+    }
+    if(num_account > max_accounts) {
         perror("Cannot create account, maximum number of accounts exceeded!!");
+        clean_all();
         exit(-1);
     }
     else if(account_balance[num_account - 1] != NULL) {
         perror("Account already exists!");
+        clean_all();
         exit(-1);
     }
     account_balance[num_account - 1] = malloc(sizeof(long int));
@@ -126,10 +146,12 @@ void error_if_account_exists(int num_account) {
     // Funcion for checking if an account is trying to be accessed before created
     if(num_account < 1 || num_account > max_accounts) {
         perror("NUMBER OF ACCOUNTS MUST BE IN RANGE 1-MAX_ACCOUNTS");
+        clean_all();
         exit(-1);
     }
     else if(account_balance[num_account - 1] == NULL) {
         perror("Account does not exist!");
+        clean_all();
         exit(-1);
     }
 }
@@ -163,54 +185,53 @@ void teachers_print(int num_accounts,char * instruction){
 
 void do_action(char* operation) {
     // Function in charge of identifying the instruction and calling the corresponding function
-    char aux[30];
-    strcpy(aux,operation);
     char ** line = (char **)malloc(sizeof(char*)*4);
-    char * op = strtok(operation," ");
-    int i = 0;
-    while (op != NULL && i < 4){
-        line[i] = op;
-        op = strtok(NULL," ");
-        i++;
+    for(int i=0; i<4; i++){
+        line[i] = malloc(sizeof(char)*30);
     }
+
+    sscanf(operation, "%s %s %s %s", line[0], line[1], line[2], line[3]);
 
     if (strncmp(line[0], "CREATE", 7) == 0) {
         check_argument(line[1]);
 
         create_account(atoi(line[1]));
-        teachers_print(atoi(line[1]),aux);
+        teachers_print(atoi(line[1]),operation);
     } else if (strncmp(line[0], "DEPOSIT", 8) == 0) {
         for (int i = 1; i < 3;i++){
             check_argument(line[i]);
            }
         deposit(atoi(line[1]), atoi(line[2]));
-        teachers_print(atoi(line[1]),aux);
+        teachers_print(atoi(line[1]),operation);
 
     } else if (strncmp(line[0], "WITHDRAW", 9) == 0){
         for (int i = 1; i < 3;i++){
             check_argument(line[i]);
            }
         withdraw_money(atoi(line[1]), atoi(line[2]));
-        teachers_print(atoi(line[1]),aux);
+        teachers_print(atoi(line[1]),operation);
     }
     else if (strncmp(line[0], "TRANSFER", 9) == 0){
         for (int i = 1; i < 4;i++){
             check_argument(line[i]);
            }
         transfer(atoi(line[1]), atoi(line[2]), atoi(line[3]));
-        teachers_print(atoi(line[2]),aux);
+        teachers_print(atoi(line[2]),operation);
     }
     else if (strncmp(line[0], "BALANCE", 8) == 0){
         check_argument(line[1]);
-        teachers_print(atoi(line[1]),aux);
+        teachers_print(atoi(line[1]),operation);
     }
     else {
-            printf("UNKNOWN OPERATION: %s\n", aux);
+            printf("UNKNOWN OPERATION: %s\n", operation);
+            free(line);
+            clean_all();
+            exit(-1);
     }
     free(line);
 }
 
-void producer(queue *q) {
+void producer() {
     while(client_numop < n_commands){
         pthread_mutex_lock(&mutex);
         while (queue_full(q)==0 && client_numop < n_commands){
@@ -229,7 +250,7 @@ void producer(queue *q) {
     pthread_exit(0);
 }
 
-void consumer(queue *q) {
+void consumer() {
      while(bank_numop < n_commands){
         pthread_mutex_lock(&mutex);
 
@@ -257,25 +278,24 @@ int main (int argc, const char * argv[] ) {
     max_accounts = atoi(argv[4]);
     int buff_size = atoi(argv[5]);
 
-    account_balance = malloc(sizeof(long int *)*max_accounts);
 
-    n_commands = init_list_clients(argv[1], list_clients_ops);
+    account_balance = malloc(sizeof(long int *)*max_accounts);
+    init_list_clients(argv[1]);
 
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&no_full, NULL);
     pthread_cond_init(&no_empty, NULL);
 
-    queue q;
-    q = *queue_init(buff_size);
+    q = queue_init(buff_size);
 
     pthread_t thid_atm[prods], thid_workers[cons];
 
     for(int i = 0;  i < prods; i++){
-        pthread_create(&thid_atm[i], NULL, (void *)producer, &q);
+        pthread_create(&thid_atm[i], NULL, (void *)producer, NULL);
     }
 
     for(int i = 0;  i < cons; i++){
-        pthread_create(&thid_workers[i], NULL, (void *)consumer, &q);
+        pthread_create(&thid_workers[i], NULL, (void *)consumer, NULL);
     }
 
     for(int i = 0;  i < prods; i++){
@@ -286,13 +306,6 @@ int main (int argc, const char * argv[] ) {
         pthread_join(thid_workers[i], NULL);
     }
 
-    queue_destroy(&q);
-
-    pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&no_full);
-    pthread_cond_destroy(&no_empty);
-
-    free(list_clients_ops);
-    free(account_balance);
+    clean_all();
     return 0;
 }
