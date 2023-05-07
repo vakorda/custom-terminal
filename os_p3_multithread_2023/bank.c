@@ -90,7 +90,7 @@ void init_list_clients(const char * file) {
     // read whole file and check number of commands is correct
     while (fgets(buff,30,fd_open) != NULL){
         if (n_lines > n_commands){
-                perror("MORE LINES THAN COMMANDS");
+                perror("MORE LINES THAN COMMANDS!!");
                 free(list_clients_ops);
                 free(account_balance);
                 exit(-1);
@@ -102,7 +102,7 @@ void init_list_clients(const char * file) {
         n_lines++;
         }
         if (n_lines < n_commands){
-                perror("LESS LINES THAN COMMANDS");
+                perror("LESS LINES THAN COMMANDS!!");
                 free(list_clients_ops);
                 free(account_balance);
                 exit(-1);
@@ -112,7 +112,7 @@ void init_list_clients(const char * file) {
 
 int check_arguments(int argc, const char *argv[]) {
     if(argc != 6) {
-        perror("Number of arguments incorrect!!\n");
+        perror("Number of arguments incorrect!!");
         exit(-1);
     }
     // check producers
@@ -336,10 +336,3 @@ int main (int argc, const char * argv[] ) {
     clean_all();
     return 0;
 }
-
-
-/*
-zip os_p3_100472343_100472280.zip bank.c queue.c queue.h authors.txt
-chmod +x checker_os_p3.sh
-./checker_os_p3.sh os_p3_100472343_100472280.zip
-*/
