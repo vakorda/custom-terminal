@@ -132,7 +132,7 @@ int check_arguments(int argc, const char *argv[]) {
     }
     //check buf_size
     if(!atoi(argv[5]) || atoi(argv[5]) <= 0) {
-        perror("Size of buffer must be a natual number!!");
+        perror("Size of the buffer must be a natural number!!");
         exit(-1);
     }
     return 0;
@@ -140,7 +140,7 @@ int check_arguments(int argc, const char *argv[]) {
 
 void create_account(int num_account) {
     if (num_account < 1 ) {
-        perror("Cannot create negative account!!");
+        perror("Account not in range of possible values!!");
         clean_all();
         exit(-1);
     }
@@ -194,6 +194,7 @@ void transfer(int num_account1, int num_account2, int ammount) {
 
 
 void print_account(int num_account,char * instruction){
+    error_if_account_dont_exist(num_account);
     printf("%d %s BALANCE = %ld TOTAL = %lld\n", bank_numop+1, instruction, *account_balance[num_account - 1], global_balance);
 }
 
