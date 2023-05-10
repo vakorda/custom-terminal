@@ -55,13 +55,15 @@ void clean_all() {
     free(account_balance);
 }
 
-void check_argument(char * num){
+int check_argument(char * num){
     // Check if a string can be converted into a number (for operations)
     if(!atoi(num) && strncmp(num, "0", 2)) {
             perror("Parameter is not an integer!!");
-            clean_all();
-            exit(-1);
+            //clean_all();
+            //exit(-1);
+            return 0;
         }
+    return 1;
 }
 
 void init_list_clients(const char * file) {
@@ -141,68 +143,81 @@ int check_arguments(int argc, const char *argv[]) {
 void create_account(int num_account) {
     if (num_account < 1 ) {
         perror("Account not in range of possible values!!");
-        clean_all();
-        exit(-1);
+        //clean_all();
+        //exit(-1);
     }
     if(num_account > max_accounts) {
         perror("Cannot create account, maximum number of accounts exceeded!!");
-        clean_all();
-        exit(-1);
+        //clean_all();
+        //exit(-1);
     }
     else if(account_balance[num_account - 1] != NULL) {
         perror("Account already exists!");
-        clean_all();
-        exit(-1);
+        //clean_all();
+        //exit(-1);
+    } else {
+        account_balance[num_account - 1] = malloc(sizeof(long int));
+        *account_balance[num_account - 1] = 0;
     }
-    account_balance[num_account - 1] = malloc(sizeof(long int));
-    *account_balance[num_account - 1] = 0;
 }
 
-void error_if_account_dont_exist(int num_account) {
+int account_exists(int num_account) {
     // checks if an account is trying to be accessed before created or not in the range allowed
     if(num_account < 1 || num_account > max_accounts) {
         perror("NUMBER OF ACCOUNTS MUST BE IN RANGE 1-MAX_ACCOUNTS");
-        clean_all();
-        exit(-1);
+        //clean_all();
+        //exit(-1);
+        return 0;
     }
     else if(account_balance[num_account - 1] == NULL) {
         perror("Account does not exist!");
-        clean_all();
-        exit(-1);
+        //clean_all();
+        //exit(-1);
+        return 0;
     }
+    return 1;
 }
 
 void deposit(int num_account, int ammount) {
-    error_if_account_dont_exist(num_account);
-    *account_balance[num_account - 1] += ammount;
-    global_balance += ammount;
+    if(account_exists(num_account)){
+        *account_balance[num_account - 1] += ammount;
+        global_balance += ammount;
+    }
 }
 
 void withdraw_money(int num_account, int ammount) {
-    error_if_account_dont_exist(num_account);
-    *account_balance[num_account - 1] -= ammount;
-    global_balance -= ammount;
+    if(account_exists(num_account)){
+        *account_balance[num_account - 1] -= ammount;
+        global_balance -= ammount;
+    }
 }
 
 void transfer(int num_account1, int num_account2, int ammount) {
-    error_if_account_dont_exist(num_account1);
-    error_if_account_dont_exist(num_account2);
-    *account_balance[num_account1 - 1] -= ammount;
-    *account_balance[num_account2 - 1] += ammount;
-
+    if(account_exists(num_account1) && account_exists(num_account2)) {
+        *account_balance[num_account1 - 1] -= ammount;
+        *account_balance[num_account2 - 1] += ammount;
+    }
 }
 
 
 void print_account(int num_account,char * instruction){
-    error_if_account_dont_exist(num_account);
-    printf("%d %s BALANCE = %ld TOTAL = %lld\n", bank_numop+1, instruction, *account_balance[num_account - 1], global_balance);
+    if(account_exists(num_account)){
+        printf("%d %s BALANCE = %ld TOTAL = %lld\n", bank_numop+1, instruction, *account_balance[num_account - 1], global_balance);
+    }
 }
 
+
+void free_line(char ** line) {
+    for(int i=0; i<4; i++){
+        free(line[i]);
+    }
+    free(line);
+    return;
+}
 
 void do_action(char* operation) {
     // Identifies the instruction and calls the corresponding function
     char ** line = (char **)malloc(sizeof(char*)*4);
-
     for(int i=0; i<4; i++){
         line[i] = malloc(sizeof(char)*30);
     }
@@ -210,48 +225,62 @@ void do_action(char* operation) {
     sscanf(operation, "%s %s %s %s", line[0], line[1], line[2], line[3]);
 
     if (strncmp(line[0], "CREATE", 7) == 0) {
-        check_argument(line[1]);
+        if (!check_argument(line[1])){
+            free_line(line);
+            return;
+            /*for(int i=0; i<4; i++){
+                free(line[i]);
+            }
+            free(line);
+            return;*/
+        }
 
         create_account(atoi(line[1]));
         print_account(atoi(line[1]),operation);
     } else if (strncmp(line[0], "DEPOSIT", 8) == 0) {
-        for (int i = 1; i < 3;i++){
-            check_argument(line[i]);
+        for(int i = 1; i < 3;i++){
+            if (!check_argument(line[i])){
+                free_line(line);
+                return;
+            }
            }
         deposit(atoi(line[1]), atoi(line[2]));
         print_account(atoi(line[1]),operation);
 
     } else if (strncmp(line[0], "WITHDRAW", 9) == 0){
         for (int i = 1; i < 3;i++){
-            check_argument(line[i]);
+            if (!check_argument(line[i])){
+                free_line(line);
+                return;
+            }
            }
         withdraw_money(atoi(line[1]), atoi(line[2]));
         print_account(atoi(line[1]),operation);
     }
     else if (strncmp(line[0], "TRANSFER", 9) == 0){
         for (int i = 1; i < 4;i++){
-            check_argument(line[i]);
+            if (!check_argument(line[i])){
+                free_line(line);
+                return;
+            }
            }
         transfer(atoi(line[1]), atoi(line[2]), atoi(line[3]));
         print_account(atoi(line[2]),operation);
     }
     else if (strncmp(line[0], "BALANCE", 8) == 0){
-        check_argument(line[1]);
+        if (!check_argument(line[1])){
+            free_line(line);
+            return;
+        }
         print_account(atoi(line[1]),operation);
     }
     else {
             printf("UNKNOWN OPERATION: %s\n", operation);
-            for(int i=0; i<4; i++){
-                free(line[i]);
-            }
-            free(line);
-            clean_all();
-            exit(-1);
+            free_line(line);
+            //clean_all();
+            //exit(-1);
     }
-    for(int i=0; i<4; i++){
-        free(line[i]);
-    }
-    free(line);
+    free_line(line);
 }
 
 void producer() {
