@@ -87,6 +87,6 @@ int queue_full(queue *q){
 //To destroy the queue and free the resources
 int queue_destroy(queue *q){
     free(q -> buffer);
-    //free(q);
+    free(q);
     return 0;
 }
