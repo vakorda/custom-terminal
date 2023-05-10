@@ -59,8 +59,6 @@ int check_argument(char * num){
     // Check if a string can be converted into a number (for operations)
     if(!atoi(num) && strncmp(num, "0", 2)) {
             perror("Parameter is not an integer!!");
-            //clean_all();
-            //exit(-1);
             return 0;
         }
     return 1;
@@ -143,18 +141,12 @@ int check_arguments(int argc, const char *argv[]) {
 void create_account(int num_account) {
     if (num_account < 1 ) {
         perror("Account not in range of possible values!!");
-        //clean_all();
-        //exit(-1);
     }
     if(num_account > max_accounts) {
         perror("Cannot create account, maximum number of accounts exceeded!!");
-        //clean_all();
-        //exit(-1);
     }
     else if(account_balance[num_account - 1] != NULL) {
         perror("Account already exists!");
-        //clean_all();
-        //exit(-1);
     } else {
         account_balance[num_account - 1] = malloc(sizeof(long int));
         *account_balance[num_account - 1] = 0;
@@ -165,14 +157,10 @@ int account_exists(int num_account) {
     // checks if an account is trying to be accessed before created or not in the range allowed
     if(num_account < 1 || num_account > max_accounts) {
         perror("NUMBER OF ACCOUNTS MUST BE IN RANGE 1-MAX_ACCOUNTS");
-        //clean_all();
-        //exit(-1);
         return 0;
     }
     else if(account_balance[num_account - 1] == NULL) {
         perror("Account does not exist!");
-        //clean_all();
-        //exit(-1);
         return 0;
     }
     return 1;
@@ -228,11 +216,6 @@ void do_action(char* operation) {
         if (!check_argument(line[1])){
             free_line(line);
             return;
-            /*for(int i=0; i<4; i++){
-                free(line[i]);
-            }
-            free(line);
-            return;*/
         }
 
         create_account(atoi(line[1]));
@@ -277,8 +260,7 @@ void do_action(char* operation) {
     else {
             printf("UNKNOWN OPERATION: %s\n", operation);
             free_line(line);
-            //clean_all();
-            //exit(-1);
+            return;
     }
     free_line(line);
 }
